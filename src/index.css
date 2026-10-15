@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --c-end: #0f766e;
+  --c-linked: #2dd4bf;
+  --c-grey: #a8a29e;
+  --c-land: #f8fafc;
+  --c-border: #94a3b8;
+  --c-ink: #0f172a;
+  --c-route: #b45309;
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--c-ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Devanagari', sans-serif;
+  overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+
+.map-label text {
+  fill: var(--c-ink);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 0.25em;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.route-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: route-draw 2.4s ease-out 0.4s forwards;
+}
+
+@keyframes route-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .route-draw {
+    stroke-dashoffset: 0;
+  }
+}
