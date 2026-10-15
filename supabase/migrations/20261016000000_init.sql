@@ -59,10 +59,11 @@ create policy players_select_own on public.players
 create policy daily_attempts_select_own on public.daily_attempts
   for select to authenticated using (player_id = (select auth.uid()));
 
--- Only today and past dates. The schedule also ships in the app bundle, so this is tidiness,
--- not secrecy; it keeps the API from listing future puzzles.
+-- Past dates only (strictly before today in IST). Server builds do not ship the schedule, so this
+-- policy is what keeps today's and future pairs secret: today's pair is revealed only by
+-- start_daily() (security definer) when the player presses Start.
 create policy daily_schedule_select_past on public.daily_schedule
-  for select to authenticated using (ist_date <= (now() at time zone 'Asia/Kolkata')::date);
+  for select to authenticated using (ist_date < (now() at time zone 'Asia/Kolkata')::date);
 
 -- No insert / update / delete policies on any table.
 
@@ -95,7 +96,8 @@ begin
 
   select * into v_sched from public.daily_schedule s where s.ist_date = v_today;
   if not found then
-    raise exception 'no puzzle scheduled for %', v_today using errcode = 'P0002';
+    -- the client matches on this message and shows 'No daily today — try Practice'
+    raise exception 'no_daily' using errcode = 'P0002', detail = v_today::text;
   end if;
 
   insert into public.players (id, display_name)

@@ -41,8 +41,9 @@ export function openSessionWhenIdle(then?: () => void): () => void {
 /**
  * Server builds: the daily pair comes only from start_daily, pressed at Start.
  * null = no connection (or the server is unreachable); the caller shows "Needs a connection to start".
+ * 'no_daily' = the server has nothing scheduled today; the caller shows "No daily today — try Practice".
  */
-export async function fetchDailyStart(): Promise<ServerDailyStart | null> {
+export async function fetchDailyStart(): Promise<ServerDailyStart | 'no_daily' | null> {
   if (!serverEnabled || (typeof navigator !== 'undefined' && navigator.onLine === false)) return null;
   return safe(startDaily);
 }

@@ -1,8 +1,8 @@
--- Server tests P1–P6 (DESIGN test matrix). Run: npx supabase test db
+-- Server tests P1–P7 (DESIGN test matrix). Run: npx supabase test db
 -- P5 ("claims a win with an unlinked set") is decided by the Edge Function replay
 -- (supabase/functions/finish-daily/handler.test.ts); here we check the client cannot write a result at all.
 begin;
-select plan(29);
+select plan(36);
 
 -- ---------------------------------------------------------------- fixtures (as postgres)
 insert into auth.users (id, aud, role, is_anonymous) values
@@ -12,6 +12,28 @@ insert into auth.users (id, aud, role, is_anonymous) values
 insert into public.daily_schedule (ist_date, puzzle_id, start_id, end_id, k)
 values ((now() at time zone 'Asia/Kolkata')::date, 'GJ-KL', 'GJ', 'KL', 2)
 on conflict (ist_date) do update set puzzle_id = 'GJ-KL', start_id = 'GJ', end_id = 'KL', k = 2;
+-- yesterday and tomorrow, for P7
+insert into public.daily_schedule (ist_date, puzzle_id, start_id, end_id, k)
+values ((now() at time zone 'Asia/Kolkata')::date - 1, 'GJ-KL', 'GJ', 'KL', 2),
+       ((now() at time zone 'Asia/Kolkata')::date + 1, 'GJ-KL', 'GJ', 'KL', 2)
+on conflict (ist_date) do nothing;
+
+-- ---------------------------------------------------------------- P7: today's and future pairs are not readable
+-- An anonymous sign-in is the authenticated role with is_anonymous = true.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated","is_anonymous":true}', true);
+select is((select count(*) from public.daily_schedule where ist_date = (now() at time zone 'Asia/Kolkata')::date), 0::bigint,
+  'P7: today''s row is not readable');
+select is((select count(*) from public.daily_schedule where ist_date > (now() at time zone 'Asia/Kolkata')::date), 0::bigint,
+  'P7: no future row is readable');
+select is((select count(*) from public.daily_schedule where ist_date = (now() at time zone 'Asia/Kolkata')::date - 1), 1::bigint,
+  'P7: yesterday''s row is readable');
+select is((select max(ist_date) from public.daily_schedule), (now() at time zone 'Asia/Kolkata')::date - 1,
+  'P7: the latest readable date is yesterday');
+reset role;
+set local role anon;
+select throws_ok('select count(*) from public.daily_schedule', '42501', null, 'P7: the anon role cannot read the schedule at all');
+reset role;
 
 -- ---------------------------------------------------------------- P1: start_daily is idempotent
 set local role authenticated;
@@ -93,6 +115,15 @@ select results_eq(
   $$values ('won'::text, 5000, 150, '{MH,KA}'::text[])$$,
   'P2: retry returns the stored result unchanged');
 select is((select count(*) from public.daily_attempts where player_id = '11111111-1111-1111-1111-111111111111'), 1::bigint, 'P2: still one row');
+
+-- ---------------------------------------------------------------- no_daily: start_daily with nothing scheduled
+reset role;
+delete from public.daily_attempts where ist_date = (now() at time zone 'Asia/Kolkata')::date;
+delete from public.daily_schedule where ist_date = (now() at time zone 'Asia/Kolkata')::date;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
+select throws_ok('select * from public.start_daily()', 'P0002', 'no_daily', 'start_daily with no schedule row raises no_daily');
+select is((select count(*) from public.daily_attempts), 0::bigint, 'no_daily: no attempt row created');
 
 select * from finish();
 rollback;

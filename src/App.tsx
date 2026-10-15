@@ -9,6 +9,7 @@ import { loadPlayer, savePlayer, STORAGE_KEY, type LocalAttempt, type SavedPlaye
 import { fetchDailyStart, openSessionWhenIdle, syncPending } from './game/sync.ts';
 
 const NEEDS_CONNECTION = 'Needs a connection to start. Practice still works offline.';
+const NO_DAILY = 'No daily today — try Practice';
 import { Home } from './screens/Home.tsx';
 import { Game, Ready } from './screens/Game.tsx';
 import { Result } from './screens/Result.tsx';
@@ -100,6 +101,7 @@ export function App() {
     const s = await fetchDailyStart();
     setStarting(false);
     if (!s) return setStartError(NEEDS_CONNECTION);
+    if (s === 'no_daily') return setStartError(NO_DAILY);
     if (!getPuzzle(s.puzzleId)) return setStartError('This app is out of date. Reload to get today’s puzzle.');
     const fresh = readPlayer();
     const existing = findDaily(fresh, s.istDate);

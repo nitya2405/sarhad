@@ -37,6 +37,8 @@ for (const size of SIZES) {
 
     test('home, ready, game, result (daily)', async ({ page }) => {
       await page.addInitScript(() => localStorage.setItem('sarhad:coach', '1'));
+      // pin the day so the bundled daily is always AS → PB (2026-10-15 IST); timers still run
+      await page.clock.setFixedTime(new Date('2026-10-15T06:00:00Z'));
       await page.goto('/');
       await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
       await page.waitForTimeout(300);
@@ -46,7 +48,7 @@ for (const size of SIZES) {
       await page.screenshot({ path: `test-results/screens/ready-${tag}.png` });
       await page.getByRole('button', { name: 'Start' }).click();
 
-      // today's bundled daily (AS → PB): a wrong guess, then one shortest route
+      // the pinned day's bundled daily (AS → PB): a wrong guess, then one shortest route
       await type(page, 'Tripura');
       for (const name of ['West Bengal', 'Bihar', 'Uttar Pradesh', 'Himachal Pradesh']) await type(page, name);
       await expect(page.getByRole('heading', { name: 'Linked!' })).toBeVisible({ timeout: 4000 });

@@ -6,7 +6,7 @@ import { getPuzzle, regionName } from './lib/data.ts';
 import { STORAGE_KEY } from './game/storage.ts';
 import type { ServerDailyStart } from './lib/server.ts';
 
-const startDaily = vi.fn<() => Promise<ServerDailyStart | null>>();
+const startDaily = vi.fn<() => Promise<ServerDailyStart | 'no_daily' | null>>();
 
 vi.mock('./lib/server.ts', () => ({
   serverEnabled: true,
@@ -65,5 +65,14 @@ describe('App (server build)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Practice' }));
     fireEvent.click(screen.getByText('Start'));
     expect(screen.getByText(/Guess 1 of 20/)).toBeTruthy();
+  });
+
+  it('shows "No daily today — try Practice" when the server has nothing scheduled', async () => {
+    startDaily.mockResolvedValue('no_daily');
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    await act(async () => fireEvent.click(screen.getByText('Start')));
+    expect(screen.getByRole('alert').textContent).toBe('No daily today — try Practice');
+    expect(localStorage.getItem(STORAGE_KEY) ?? '').not.toContain('"mode":"daily"');
   });
 });

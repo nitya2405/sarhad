@@ -1,7 +1,7 @@
 // finish-daily Edge Function (Deno). Verifies the caller, replays the guesses with the shared engine,
 // and writes the result through finish_daily_commit (service_role only). Retries are safe: an
 // attempt that is already finished returns its stored result unchanged.
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 import gamedata from '../_shared/gamedata.json' with { type: 'json' };
 import type { Adjacency, Region } from '../_shared/engine/index.ts';
 import { decideFinish, parseBody, storedResponse } from './handler.ts';

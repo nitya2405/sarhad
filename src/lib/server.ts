@@ -92,12 +92,16 @@ export async function ensureSession(): Promise<boolean> {
   return sessionPromise;
 }
 
-/** Calls the start_daily() RPC. Same row/startedAt on repeat calls. null when disabled or offline. */
-export async function startDaily(): Promise<ServerDailyStart | null> {
+/**
+ * Calls the start_daily() RPC. Same row/startedAt on repeat calls. null when disabled or offline;
+ * 'no_daily' when the server has no puzzle scheduled for today.
+ */
+export async function startDaily(): Promise<ServerDailyStart | 'no_daily' | null> {
   try {
     const c = await authed();
     if (!c) return null;
     const { data, error } = await c.rpc('start_daily');
+    if (error?.message === 'no_daily') return 'no_daily';
     if (error) throw error;
     const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
     if (!row) return null;
