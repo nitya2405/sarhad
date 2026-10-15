@@ -1,11 +1,8 @@
 // Phase 2 sync. Every server call is optional: failures leave the local game untouched.
 import { istDate } from '@engine/index.ts';
-import { ServerRejectedError, ensureSession, finishDaily, serverEnabled, startDaily } from '../lib/server.ts';
+import { ServerRejectedError, ensureSession, finishDaily, serverEnabled, startDaily, type ServerDailyStart } from '../lib/server.ts';
 import { upsertAttempt } from './model.ts';
 import { loadPlayer, savePlayer, type LocalAttempt } from './storage.ts';
-
-/** In-flight start_daily calls, so a fast finish waits for its server attempt id. */
-const starting = new Map<string, Promise<void>>();
 
 async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -23,26 +20,35 @@ function update(attemptId: string, patch: Partial<LocalAttempt>) {
   savePlayer(upsertAttempt(p, { ...a, ...patch }, istDate(Date.now())));
 }
 
-export function openSession(): void {
-  if (serverEnabled) void safe(ensureSession);
+/**
+ * Silent anonymous sign-in, loaded after first paint so supabase-js stays off the critical path:
+ * requestIdleCallback, with a timeout fallback. If Start comes first, startDaily signs in itself
+ * (ensureSession is shared), so the daily never starts without a session.
+ */
+export function openSessionWhenIdle(then?: () => void): () => void {
+  if (!serverEnabled) return () => {};
+  const run = () => {
+    void safe(ensureSession).then(() => then?.());
+  };
+  if (typeof requestIdleCallback === 'function') {
+    const id = requestIdleCallback(run, { timeout: 2000 });
+    return () => cancelIdleCallback(id);
+  }
+  const t = setTimeout(run, 1200);
+  return () => clearTimeout(t);
 }
 
-/** Called on Start of a daily; never blocks play. */
-export function registerDailyStart(attempt: LocalAttempt): void {
-  if (!serverEnabled || attempt.mode !== 'daily' || attempt.serverAttemptId) return;
-  const job = (async () => {
-    await safe(ensureSession);
-    const s = await safe(startDaily);
-    // Only link when the server agrees on the date and puzzle; otherwise play locally.
-    if (s && s.istDate === attempt.date && s.puzzleId === attempt.puzzleId) update(attempt.attemptId, { serverAttemptId: s.attemptId });
-  })();
-  starting.set(attempt.attemptId, job);
-  void job.finally(() => starting.delete(attempt.attemptId));
+/**
+ * Server builds: the daily pair comes only from start_daily, pressed at Start.
+ * null = no connection (or the server is unreachable); the caller shows "Needs a connection to start".
+ */
+export async function fetchDailyStart(): Promise<ServerDailyStart | null> {
+  if (!serverEnabled || (typeof navigator !== 'undefined' && navigator.onLine === false)) return null;
+  return safe(startDaily);
 }
 
 /** Sends one finished daily. Returns true when nothing is left to send for it. */
 async function syncOne(a: LocalAttempt): Promise<boolean> {
-  await starting.get(a.attemptId);
   const fresh = loadPlayer().attempts.find((x) => x.attemptId === a.attemptId) ?? a;
   if (!fresh.pendingSync) return true;
   if (!fresh.serverAttemptId) {

@@ -416,5 +416,7 @@ enabled = true
 
 [functions.finish-daily]
 enabled = true
-verify_jwt = true
+# The function verifies the caller itself (auth.getUser); gateway JWT checks do not cover the
+# project's publishable/secret keys, so they are off here. See finish-daily/index.ts.
+verify_jwt = false
 import_map = "./functions/finish-daily/deno.json"

@@ -2,12 +2,11 @@
 import regionsJson from '../data/regions.json';
 import adjacencyJson from '../data/adjacency.json';
 import puzzlesJson from '../data/puzzles.json';
-import dailyJson from '../data/daily.json';
+import { bundledSchedule } from '@schedule';
 import {
   buildAliasIndex,
   type AliasIndex,
   type Adjacency,
-  type DailySchedule,
   type Puzzle,
   type Region,
   type RegionId,
@@ -21,11 +20,12 @@ function listOf<T>(json: unknown, key: string): T[] {
 export const regions: Region[] = listOf<Region>(regionsJson, 'regions');
 export const adjacency = adjacencyJson as unknown as Adjacency;
 export const puzzles: Puzzle[] = listOf<Puzzle>(puzzlesJson, 'puzzles');
-export const schedule = dailyJson as unknown as DailySchedule;
+/** null in server builds: the daily pair then comes only from start_daily. */
+export const schedule = bundledSchedule;
 
 export const regionById = new Map(regions.map((r) => [r.id, r]));
 const puzzleById = new Map(puzzles.map((p) => [p.id, p]));
-const dailyByDate = new Map(schedule.entries.map((e) => [e.date, e.puzzleId]));
+const dailyByDate = new Map((schedule?.entries ?? []).map((e) => [e.date, e.puzzleId]));
 
 let index: AliasIndex | null = null;
 export function aliasIndex(): AliasIndex {
@@ -36,7 +36,7 @@ export function getPuzzle(id: string): Puzzle | undefined {
   return puzzleById.get(id);
 }
 
-/** Today's daily puzzle for an IST date, if the schedule covers it. */
+/** Today's daily puzzle for an IST date from the bundled schedule (offline builds only). */
 export function dailyPuzzle(date: string): Puzzle | undefined {
   const id = dailyByDate.get(date);
   return id ? puzzleById.get(id) : undefined;

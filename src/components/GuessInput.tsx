@@ -1,36 +1,74 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react';
-import { normalize, resolveInput, type RegionId, type RejectReason } from '@engine/index.ts';
+import { liveSuggestion, normalize, resolveInput, type RegionId, type RejectReason } from '@engine/index.ts';
 import { aliasIndex, regionName } from '../lib/data.ts';
+import { PATTERN, buzz } from '../lib/haptics.ts';
 
 interface Props {
   start: RegionId;
   end: RegionId;
   guesses: RegionId[];
   onAccept: (id: RegionId) => void;
+  /** a duplicate was typed: the game pulses that state's chip */
+  onDuplicate: (id: RegionId) => void;
+  /** first game only: a short hint in the message line */
+  hint?: string;
 }
 
-/** Contexto-style input: text box + Enter, up to 4 chips, one-line message. Rejections spend no guess. */
-export function GuessInput({ start, end, guesses, onAccept }: Props) {
+/**
+ * Contexto-style input. While typing, nothing is suggested until the text nearly names exactly one
+ * region (one completion chip). Enter accepts exact names/aliases, or the chip. A misspelling
+ * gets one "Did you mean …?" chip that the next Enter accepts. Rejections spend no guess.
+ */
+export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }: Props) {
   const [text, setText] = useState('');
   const [message, setMessage] = useState('');
+  const [msgKey, setMsgKey] = useState(0);
+  /** "Did you mean" chip, valid while the text stays the same */
+  const [didYouMean, setDidYouMean] = useState<{ id: RegionId; text: string }>();
   const inputRef = useRef<HTMLInputElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const ctx = useMemo(() => ({ start, end, guesses, index: aliasIndex() }), [start, end, guesses]);
 
-  const live = useMemo(() => (normalize(text).length >= 2 ? resolveInput(text, ctx) : null), [text, ctx]);
-  const chips: RegionId[] = live?.type === 'suggest' ? live.ids : live?.type === 'accept' ? [live.id] : [];
-  const highlight = live?.type === 'suggest' ? live.highlight : live?.type === 'accept' ? live.id : undefined;
+  const live = useMemo(() => liveSuggestion(text, ctx), [text, ctx]);
+  const chip = didYouMean?.text === text ? didYouMean.id : live;
+
+  function say(msg: string) {
+    setMessage(msg);
+    setMsgKey((k) => k + 1);
+  }
 
   function accept(id: RegionId) {
     setText('');
     setMessage('');
+    setDidYouMean(undefined);
     onAccept(id);
     inputRef.current?.focus();
+  }
+
+  /** Restart the shake without remounting the input (keeps text and focus). */
+  function shake() {
+    const el = rowRef.current;
+    if (!el) return;
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+  function reject(reason: RejectReason) {
+    shake();
+    buzz(PATTERN.rejected);
+    say(rejectMessage(reason));
+    if (reason === 'duplicate') {
+      const r = resolveInput(text, { ...ctx, guesses: [] });
+      const id = r.type === 'accept' ? r.id : r.type === 'suggest' ? r.highlight : undefined;
+      if (id) onDuplicate(id);
+    }
   }
 
   function rejectMessage(reason: RejectReason): string {
     switch (reason) {
       case 'empty':
-        return 'Type a state or union territory.';
+        return 'Type a state name';
       case 'unknown':
         return 'Not a state name';
       case 'duplicate':
@@ -48,39 +86,51 @@ export function GuessInput({ start, end, guesses, onAccept }: Props) {
 
   function submit(e: FormEvent) {
     e.preventDefault();
+    if (chip) return accept(chip);
+    if (!normalize(text)) return reject('empty');
     const r = resolveInput(text, ctx);
     if (r.type === 'accept') return accept(r.id);
-    if (r.type === 'suggest') {
-      if (r.highlight) return accept(r.highlight);
-      setMessage(`Did you mean ${r.ids.map(regionName).join(' or ')}?`);
+    if (r.type === 'reject') return reject(r.reason);
+    if (r.highlight) {
+      // misspelling: offer one chip, never auto-accept
+      setDidYouMean({ id: r.highlight, text });
+      say(`Did you mean ${regionName(r.highlight)}?`);
       return;
     }
-    setMessage(rejectMessage(r.reason));
+    // a partial name: listing its matches would reveal names, so ask for the whole name
+    shake();
+    buzz(PATTERN.rejected);
+    say('Type the full name');
   }
 
+  const line = message || hint || '';
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2">
-      {chips.length > 0 && (
-        <div className="flex flex-wrap gap-2" aria-label="Suggestions">
-          {chips.map((id) => (
-            <button
-              type="button"
-              key={id}
-              onClick={() => accept(id)}
-              className={`min-h-9 rounded-full border px-3 py-1 text-sm ${
-                id === highlight ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-300 bg-white text-slate-800'
-              }`}
-            >
-              {regionName(id)}
-              {id === highlight && <span aria-label=" — press Enter"> ↵</span>}
-            </button>
-          ))}
-        </div>
-      )}
-      <p role="status" aria-live="polite" className="min-h-5 text-sm text-rose-700">
-        {message}
-      </p>
-      <div className="flex gap-2">
+    <form onSubmit={submit} className="flex flex-col gap-1.5">
+      {/* collapses when empty, so the guess chips sit right on the input */}
+      <div className={chip || line ? 'flex min-h-11 items-center gap-2' : 'h-0 overflow-hidden'}>
+        {chip && (
+          <button
+            type="button"
+            onClick={() => accept(chip)}
+            className="fade-in inline-flex min-h-11 items-center gap-1 rounded-full bg-marigold px-4 font-display text-base font-semibold text-ink"
+          >
+            {didYouMean?.id === chip ? `Did you mean ${regionName(chip)}?` : regionName(chip)}
+            <span aria-hidden="true"> ↵</span>
+            <span className="sr-only"> — press Enter to add</span>
+          </button>
+        )}
+        <p
+          key={msgKey}
+          role="status"
+          aria-live="polite"
+          className={`min-w-0 flex-1 text-sm ${message ? 'slide-in' : ''} ${
+            message ? 'font-semibold text-kumkum' : 'text-ink-soft'
+          } ${chip ? 'sr-only' : ''}`}
+        >
+          {line}
+        </p>
+      </div>
+      <div ref={rowRef} className="flex gap-2" onAnimationEnd={(e) => e.currentTarget.classList.remove('shake')}>
         <label htmlFor="guess" className="sr-only">
           Name a state or union territory
         </label>
@@ -100,10 +150,10 @@ export function GuessInput({ start, end, guesses, onAccept }: Props) {
           enterKeyHint="go"
           maxLength={80}
           placeholder="Type a state…"
-          className="min-w-0 flex-1 rounded-lg border border-slate-400 bg-white px-3 py-2 text-base"
+          className="min-h-12 min-w-0 flex-1 rounded-card border-2 border-ink-line bg-white px-4 text-base text-ink placeholder:text-ink-soft focus:border-ink focus:outline-none focus-visible:outline-none"
         />
-        <button type="submit" className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white">
-          Enter
+        <button type="submit" aria-label="Enter" className="min-h-[48px] min-w-[48px] rounded-card bg-ink px-3 font-display text-xl font-extrabold text-paper">
+          ↵
         </button>
       </div>
     </form>

@@ -27,6 +27,7 @@ function type(text: string) {
 describe('App (smoke)', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('sarhad:coach', '1'); // first-open coach already seen
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-16T06:00:00Z')); // first scheduled daily
   });
@@ -38,7 +39,7 @@ describe('App (smoke)', () => {
   it('plays today’s daily from Home to Result, rejecting bad input without spending guesses', async () => {
     const puzzle = dailyPuzzle(istDate(Date.now()))!;
     render(<App />);
-    fireEvent.click(screen.getByText("Play today's puzzle"));
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     // Ready: endpoints hidden until Start
     expect(screen.queryByText(new RegExp(regionName(puzzle.start)))).toBeNull();
     fireEvent.click(screen.getByText('Start'));
@@ -54,13 +55,13 @@ describe('App (smoke)', () => {
 
     for (const id of puzzle.shortest.slice(1, -1)) type(regionName(id));
     await act(async () => {});
-    expect(screen.getByText('Linked!')).toBeTruthy();
+    expect(await screen.findByText('Linked!', undefined, { timeout: 3000 })).toBeTruthy(); // after the win pulse
     expect(screen.getByText('You found a shortest route!')).toBeTruthy();
 
     // F2: reopening lands on Done today, not a second attempt
     cleanup();
     render(<App />);
-    expect(screen.getByText(/Done today/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: "See today's result" })).toBeTruthy();
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
     expect(saved.player.attempts).toHaveLength(1);
   });

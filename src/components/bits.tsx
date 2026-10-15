@@ -1,68 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { nextIstMidnight } from '@engine/index.ts';
-import { formatCountdown, formatDate, formatTime } from '../lib/format.ts';
+import { formatCountdown, formatTime } from '../lib/format.ts';
 import { useNow } from '../lib/hooks.ts';
-import { getPuzzle, regionName } from '../lib/data.ts';
 import { getDailyBoard, needsDisplayName, setDisplayName, type DailyBoard } from '../lib/server.ts';
-import { elapsedMs } from '../game/model.ts';
-import type { LocalAttempt } from '../game/storage.ts';
-import type { Stats } from '../game/model.ts';
 
 export function Countdown() {
   const now = useNow(1000);
   return (
     <span>
-      Next daily in <span className="font-mono tabular-nums">{formatCountdown(nextIstMidnight(now) - now)}</span>
+      Next in <span className="num">{formatCountdown(nextIstMidnight(now) - now)}</span>
     </span>
-  );
-}
-
-export function StatsRow({ stats, showPoints = true }: { stats: Stats; showPoints?: boolean }) {
-  const items: [string, number][] = [
-    ...(showPoints ? ([['Points', stats.totalPoints]] as [string, number][]) : []),
-    ['Streak', stats.streak],
-    ['Best streak', stats.best],
-    ['Wins', stats.wins],
-  ];
-  return (
-    <dl className="grid grid-cols-2 gap-2 min-[360px]:grid-cols-4">
-      {items.map(([k, v]) => (
-        <div key={k} className="rounded-lg bg-slate-100 p-2 text-center">
-          <dt className="text-xs text-slate-600">{k}</dt>
-          <dd className="text-xl font-semibold tabular-nums">{v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-/** 'Your best times' — this phone only, never presented as a global board. */
-export function BestTimes({ attempts }: { attempts: LocalAttempt[] }) {
-  return (
-    <section aria-labelledby="best-times">
-      <h2 id="best-times" className="font-semibold">
-        Your best times <span className="text-sm font-normal text-slate-500">(on this phone)</span>
-      </h2>
-      {attempts.length === 0 ? (
-        <p className="text-sm text-slate-500">Win a daily to set your first time.</p>
-      ) : (
-        <ol className="mt-1 flex flex-col gap-1 text-sm">
-          {attempts.map((a) => {
-            const p = getPuzzle(a.puzzleId);
-            return (
-              <li key={a.attemptId} className="flex flex-wrap justify-between gap-x-3">
-                <span>
-                  {formatDate(a.date!)} · {p ? `${regionName(p.start)} → ${regionName(p.end)}` : a.puzzleId}
-                </span>
-                <span className="tabular-nums">
-                  {formatTime(a.serverTimeMs ?? elapsedMs(a))} · {a.guesses.length} guesses
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-    </section>
   );
 }
 
@@ -80,22 +27,25 @@ export function Leaderboard({ date, refreshKey }: { date: string; refreshKey: un
   }, [date, refreshKey]);
 
   return (
-    <section aria-labelledby="board">
-      <h2 id="board" className="font-semibold">
-        Today's leaderboard
+    <section aria-labelledby="board" className="rounded-card bg-white p-4">
+      <h2 id="board" className="font-display text-lg font-semibold">
+        Today
       </h2>
-      {board === undefined && <p className="text-sm text-slate-500">Loading…</p>}
-      {board === null && <p className="text-sm text-slate-500">Leaderboard unavailable right now.</p>}
-      {board && board.rows.length === 0 && <p className="text-sm text-slate-500">No winners yet today.</p>}
+      {board === undefined && <p className="text-sm text-ink-soft">Loading…</p>}
+      {board === null && <p className="text-sm text-ink-soft">Leaderboard offline.</p>}
+      {board && board.rows.length === 0 && <p className="text-sm text-ink-soft">No winners yet.</p>}
       {board && board.rows.length > 0 && (
         <ol className="mt-1 flex flex-col gap-1 text-sm">
           {board.rows.map((r) => (
-            <li key={`${r.rank}-${r.displayName}`} className={`flex justify-between gap-3 ${r.isMe ? 'font-semibold text-teal-800' : ''}`}>
+            <li
+              key={`${r.rank}-${r.displayName}`}
+              className={`flex justify-between gap-3 rounded-full px-2 py-0.5 ${r.isMe ? 'bg-marigold font-semibold' : ''}`}
+            >
               <span>
                 {r.rank}. {r.displayName}
                 {r.isMe && ' (you)'}
               </span>
-              <span className="tabular-nums">
+              <span className="num">
                 {formatTime(r.timeMs)} · {r.nGuesses}
               </span>
             </li>
@@ -133,9 +83,9 @@ export function NamePrompt({ onSaved }: { onSaved: () => void }) {
   }
 
   return (
-    <form onSubmit={save} className="flex flex-col gap-2 rounded-lg border border-teal-700 p-3">
+    <form onSubmit={save} className="flex flex-col gap-2 rounded-card border-2 border-marigold-deep bg-white p-3">
       <label htmlFor="display-name" className="font-semibold">
-        Name for the leaderboard
+        Your name on the board
       </label>
       <div className="flex gap-2">
         <input
@@ -144,11 +94,11 @@ export function NamePrompt({ onSaved }: { onSaved: () => void }) {
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
           autoComplete="nickname"
-          className="min-w-0 flex-1 rounded-lg border border-slate-400 px-3 py-2"
+          className="min-h-12 min-w-0 flex-1 rounded-card border-2 border-ink-line bg-white px-3"
         />
-        <button className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white">Save</button>
+        <button className="min-h-12 rounded-card bg-ink px-4 font-display font-extrabold text-paper">Save</button>
       </div>
-      <p role="status" className="text-sm text-rose-700">
+      <p role="status" className="text-sm font-semibold text-kumkum">
         {error}
       </p>
     </form>
@@ -157,7 +107,7 @@ export function NamePrompt({ onSaved }: { onSaved: () => void }) {
 
 export function Footer() {
   return (
-    <footer className="mt-auto pt-6 text-center text-xs text-slate-500">
+    <footer className="mt-auto pt-4 text-center text-xs text-ink-soft">
       Map data ©{' '}
       <a className="underline" href="https://simplemaps.com/gis/country/in" target="_blank" rel="noreferrer">
         SimpleMaps

@@ -1,4 +1,5 @@
-// Raw SimpleMaps GeoJSON → src/data/map.json { viewBox, regions: { ID: { d, label: [x, y] } } }.
+// Raw SimpleMaps GeoJSON → src/data/map.json { viewBox, regions: { ID: { d, label: [x, y] } } }
+// and src/data/minimap.json { viewBox, regions: { ID: d } } (coarse, for the Home card).
 // Ids are remapped, geometry projected (Lambert conformal conic for India) and simplified with
 // mapshaper on shared arcs (topology-preserving, so neighbours keep a common edge: no gaps),
 // then fitted to the viewBox with d3-geo and serialised as SVG paths with 1-decimal coordinates.
@@ -13,6 +14,9 @@ import { RAW_GEOJSON, fail, loadSourceRegions, p, simplemapsIdMap, writeJson } f
 const WIDTH = 1000;
 const PAD = 8;
 const SIMPLIFY = '15%';
+/** Home card mini map: same projection, far coarser, integer coordinates. */
+const MINI_SIMPLIFY = '1.5%';
+const MINI_MAX_GZ = 8 * 1024;
 const PROJ = '+proj=lcc +lat_1=12 +lat_2=28 +lat_0=22 +lon_0=80 +datum=WGS84 +units=m';
 
 type Geom = Polygon | MultiPolygon;
@@ -75,3 +79,20 @@ const bytes = writeJson(p('src/data/map.json'), { viewBox: `0 0 ${WIDTH} ${heigh
 const gz = gzipSync(readFileSync(p('src/data/map.json'))).length;
 console.log(`✓ map.json: 36 regions, viewBox 0 0 ${WIDTH} ${height}, ${(bytes / 1024).toFixed(1)} KB (${(gz / 1024).toFixed(1)} KB gzip)`);
 if (bytes > 120 * 1024) fail('map.json exceeds 120 KB');
+
+// Mini map: same projection and viewBox, so it lines up with map.json.
+const miniOut = await mapshaper.applyCommands(
+  `-i in.json -proj ${PROJ} -simplify ${MINI_SIMPLIFY} keep-shapes planar -o out.json format=geojson precision=1`,
+  { 'in.json': JSON.stringify(raw) },
+);
+const mini = JSON.parse(String(miniOut['out.json'])) as FeatureCollection<Geom>;
+const miniPath = geoPath(projection).digits(0);
+const miniRegions: Record<string, string> = {};
+for (const f of mini.features as Feature<Geom>[]) miniRegions[String(f.properties?.id)] = miniPath(f) ?? '';
+const miniMissing = expected.filter((id) => !miniRegions[id]);
+if (miniMissing.length) fail(`minimap.json missing: ${miniMissing.join(', ')}`);
+const miniSorted = Object.fromEntries(Object.keys(miniRegions).sort().map((id) => [id, miniRegions[id]]));
+const miniBytes = writeJson(p('src/data/minimap.json'), { viewBox: `0 0 ${WIDTH} ${height}`, regions: miniSorted });
+const miniGz = gzipSync(readFileSync(p('src/data/minimap.json'))).length;
+console.log(`✓ minimap.json: ${(miniBytes / 1024).toFixed(1)} KB (${(miniGz / 1024).toFixed(1)} KB gzip)`);
+if (miniGz > MINI_MAX_GZ) fail('minimap.json exceeds 8 KB gzip');

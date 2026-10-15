@@ -12,7 +12,7 @@ Any legal land route wins; the fastest finish earns the most points; the shortes
 2. **Colouring (separate from winning).** `linkedSet(start, end, guesses, adjacency)` returns every guess in the component of start or of end. Those are coloured; other guesses are grey and turn coloured when a later guess connects them. Colour means 'connected to your route', never 'on the shortest route'.
 3. **Regions.** Endpoints: the 28 states. Land UTs (Delhi, Chandigarh, Jammu & Kashmir, Ladakh, Dadra & Nagar Haveli and Daman & Diu) are legal stepping stones **only if each of their borders is verified**; separate pieces of one UT never connect to each other. Not playable, no guess spent: Andaman & Nicobar, Lakshadweep, Puducherry.
 4. **Graph + BFS.** About 75 hand-verified edges over 33 playable regions, committed as a versioned JSON. A build-time generator runs BFS for every state pair and keeps those with 2 ≤ k ≤ 6 regions in between, storing the distance, k and one shortest route.
-5. **Daily selection.** Asia/Kolkata only (UTC+5:30, no daylight saving). The generator runs offline once and commits `daily.json` (IST date → puzzle). The app only reads it and never regenerates. Past dates are never edited. An attempt keeps its puzzle id from Start to finish, across refreshes and midnight.
+5. **Daily selection.** Asia/Kolkata only (UTC+5:30, no daylight saving). The generator runs offline once and commits `daily.json` (IST date → puzzle), starting 2026-10-15; it is append-only after the first deploy and past dates are never edited. **Server builds never ship the schedule:** the daily pair comes only from `start_daily()` when Start is pressed, so future dailies cannot be read from the bundle; a build check fails if a server build contains any date after today. The bundled `daily.json` is used only by builds without a server (dev/offline fallback). Offline with a server configured, Daily shows 'Needs a connection to start'; Practice still works. An attempt keeps its puzzle id from Start to finish, across refreshes and midnight.
 6. **Guess cap.** A fixed **20 guesses on every puzzle, shown as 'Guess 3 of 20**'. A cap that changes with k would look arbitrary to players and leak the route length. 20 is deliberately generous for now; tune it after playtests. Time already punishes guessing every state; the cap only makes a loss possible.
 7. **Score.** Time t runs from Start to the winning guess. With par = 20 s + 10 s × k: P = round(100 × (k + 1) × par / (par + t)). Faster is always worth more. No separate penalty for extra guesses — they already cost time. Loss or give-up = 0. Practice is unscored in v1.
 8. **Leaderboard.** Ranks today's winners by exact time in ms, then fewer guesses, then earlier finish. Before the server exists: 'Your best times' on this phone, never a fake global board.
@@ -32,7 +32,7 @@ Sarhad is a one-minute daily puzzle: connect two Indian states by naming the reg
 
 1. **Header:** 'Gujarat → Kerala' in the endpoint colour, timer (runs on the phone's monotonic clock, so changing the device time cannot move it), 'Guess 3 of 20'. One line under it: 'Name the states in between, in any order.'
 2. **Map (\~55% of height):** India with official boundaries, every region an unlabelled outline. Only the two endpoints are filled and labelled at the start. Each accepted guess gets its label and a fill: endpoint colour when connected to start or end, grey when not yet connected (turns coloured later if it joins). Small regions (Delhi, Chandigarh, Goa, Tripura, DNH & DD) get a larger invisible hit area and a dot marker when guessed.
-3. **Input (Contexto-style, pinned above the keyboard):** one text box + Enter; up to 4 autocomplete chips after 2 characters; a fuzzy match appears as one highlighted chip that Enter accepts.
+3. **Input (Contexto-style, pinned above the keyboard):** one text box + Enter. No suggestions while the input could still be several regions; one completion chip once it nearly names exactly one region (a complete word of its name, or ≥ 75% of its letters). A misspelling submitted with Enter gets one 'Did you mean …?' chip that the next Enter accepts. Visual design: `docs/DESIGN-SYSTEM.md`.
 4. **Message line:** one short line for every rejected input — 'Already guessed', 'Not a state name', 'That's your start/end', 'No land border — not playable', 'Did you mean…'. None of these spends a guess.
 5. **Guess list (newest first):** name + ● connected or ○ not yet connected. This list alone is enough to play, so the game still works if the map fails to load or for screen readers.
 6. **Give up** link, small, bottom.
@@ -114,7 +114,7 @@ interface LocalPlayer {
   playerId: string;                // uuid, made on first open
   streak: number; best: number; lastWinDate?: string;
   totalPoints: number;
-  attempts: Attempt[];             // keep last 30
+  attempts: Attempt[];             // dailies kept 400 days (streaks); practice: last 30
 }
 ```
 
@@ -140,13 +140,12 @@ create table daily_attempts (
   unique (player_id, ist_date)                     -- one daily per player per day
 );
 
-create view daily_board as
-  select ist_date, player_id, time_ms, cardinality(guesses) as n_guesses, finished_at
-  from daily_attempts where status = 'won'
-  order by time_ms, n_guesses, finished_at;
+-- No daily_board view: get_daily_board(date) (security definer) returns the top 50 winners
+-- (time_ms, then cardinality(guesses), then finished_at) with display names, plus the caller's
+-- rank. It never exposes player ids, guesses or other players' attempt rows.
 ```
 
-Row-level security is on with no insert or update policies; the player id comes from a silent Supabase anonymous identity (the auth token), never from a uuid the client sends. Two functions do every write:
+Row-level security is on with no insert or update policies; the player id comes from a silent Supabase anonymous identity (the auth token), never from a uuid the client sends. Two functions do every write (plus `set_display_name` for the leaderboard name):
 
 - `start_daily()` — inserts today's row with the server's `started_at`, or returns the existing row. Two tabs or two calls get the same attempt and the same start.
 - `finish_daily(attempt_id, guesses)` — one transaction. Rejects if the attempt is not the caller's, or the guess list is longer than 20, has unknown ids, duplicates, endpoints or unplayable regions. Replays the guesses on the server copy of the graph, decides won or lost, computes time and points, sets status. If the attempt is already finished, it returns the stored result unchanged — this makes retries after a timeout safe without a separate idempotency key, because an attempt can move from playing to finished only once.
@@ -269,8 +268,8 @@ This matrix is the acceptance list: a release ships only when every row passes. 
 | R1 | Route | GJ → KL, guesses MH, KA | Won, 2 guesses, 'shortest route' message |
 | R2 | Longer route | GJ → KL, guesses RJ, MP, MH, KA | Won, 4 guesses, shows one shortest route |
 | R3 | Order | GJ → KL, guesses KA then MH | Won on MH |
-| R4 | Not linked | GJ → KL, guesses RJ, DL, UP | Playing; RJ coloured; DL, UP grey |
-| R5 | Late link | R4, then HR | DL and UP turn coloured; still Playing |
+| R4 | Not linked | GJ → KL, guesses RJ, DL, UK | Playing; RJ coloured; DL, UK grey |
+| R5 | Late link | R4, then UP | DL and UK turn coloured; still Playing |
 | R6 | UT step | GJ → KL, guess DD | accepted, guess spent, coloured, not required |
 | R7 | Cap | 20 guesses, none linking | Lost on the 20th |
 | R8 | Reveal | any finish | shown route re-validates edge by edge; labelled 'one shortest route' |
@@ -285,8 +284,8 @@ This matrix is the acceptance list: a release ships only when every row passes. 
 | I3 | Not playable | 'Puducherry', 'Andaman', 'Lakshadweep' | 'No land border — not playable', no guess spent |
 | I4 | Endpoint | start state typed | 'That's your start', no guess spent |
 | I5 | Aliases | 'mp', 'M.P.', 'Orissa', 'Uttaranchal', 'मध्य प्रदेश' | MP, MP, OD, UK, MP accepted at once |
-| I6 | Typos | 'Maharastra', 'Chattisgarh', 'Telengana' | one highlighted chip; Enter accepts |
-| I7 | Fuzzy safety | 'up' vs 'uk'; 3 random letters; 'Mani' | abbreviations exact only; no fuzzy under 4 characters; prefix shows chips, nothing auto-accepted |
+| I6 | Typos | 'Maharastra', 'Chattisgarh', 'Telengana' + Enter | one 'Did you mean …?' chip; the next Enter accepts; never auto-accepted |
+| I7 | No early reveal | typing 'a', 'ar', 'arun', 'kera', 'mani'; then 'arunachal', 'keral', 'uttar', 'west' | nothing shown until the input nearly names exactly one region (a complete word of its name, or ≥ 75% of a name's letters as a prefix): AR, KL, UP (not UK), WB chips; exact names/aliases ('mp', 'up', 'j&k', 'orissa') accepted on Enter with no chip; abbreviations exact only; nothing auto-accepted |
 | D1 | Repeat | MH twice; 'Maharashtra' then 'mh' | 'Already guessed', no guess spent |
 | F1 | Refresh | mid-game | same puzzle, guesses, start time |
 | F2 | Refresh | after finishing | Done today, stored result, no second score |

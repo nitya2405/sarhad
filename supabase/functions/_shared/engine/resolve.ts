@@ -112,6 +112,44 @@ export function resolveInput(raw: string, ctx: ResolveCtx): ResolveResult {
   return { type: 'reject', reason: 'unknown' };
 }
 
+/** Share of a name's letters the typed prefix must cover before it is completed. */
+const PREFIX_SHARE = 0.75;
+
+const letterCount = (s: string) => Array.from(s.replace(/ /g, '')).length;
+
+/**
+ * While typing, suggest nothing until the input nearly names exactly one region, so chips never
+ * reveal names the player has not thought of. A region qualifies when the input
+ * - contains a complete word of one of its names/aliases (Latin words of 3+ letters, any Devanagari
+ *   word), e.g. 'arunachal', 'madhya', 'west', 'tamil'; or
+ * - is a prefix of one of its names/aliases covering ≥ 75% of the letters, e.g. 'keral'.
+ * Returns that region only if it is the single one, and it is playable, not an endpoint and not
+ * guessed. Exact names/aliases return null (Enter accepts them without a chip), except a whole
+ * word of a longer official name ('arunachal', 'bengal'), which still shows its completion.
+ * Abbreviations (Latin, ≤ 3 chars) never take part. Never accepts anything itself.
+ */
+export function liveSuggestion(raw: string, ctx: ResolveCtx): RegionId | null {
+  const q = normalize(raw);
+  if (!q) return null;
+  const exact = ctx.index.exact.get(q);
+  if (exact) {
+    const words = normalize(ctx.index.regions.get(exact)?.name.en ?? '').split(' ');
+    if (words.length < 2 || !words.includes(q)) return null;
+  }
+  const words = q.split(' ').filter((w) => !isLatin(w) || w.length >= 3);
+  const found = new Set<RegionId>();
+  for (const [key, id] of ctx.index.exact) {
+    if (isLatin(key) && key.length <= 3) continue;
+    const keyWords = key.split(' ');
+    const hasWord = words.some((w) => keyWords.includes(w));
+    if (hasWord || (key.startsWith(q) && letterCount(q) >= PREFIX_SHARE * letterCount(key))) found.add(id);
+  }
+  if (found.size !== 1) return null;
+  const [id] = found;
+  const playable = ctx.index.regions.get(id)?.playable;
+  return playable && id !== ctx.start && id !== ctx.end && !ctx.guesses.includes(id) ? id : null;
+}
+
 function prefixIds(
   q: string,
   ctx: ResolveCtx,

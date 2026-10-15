@@ -27,12 +27,6 @@ describe('routes (R1–R10)', () => {
     expect(replay('GJ', 'KL', ['KA', 'MH'], ctx())).toEqual({ ok: true, status: 'won', winningIndex: 1 });
   });
 
-  // DESIGN's R4 row (RJ, DL, UP → DL, UP grey) predates noticing that RJ–UP is an edge in
-  // adjacency.v1, so UP links RJ and DL. The intended behaviour is tested with RJ, DL, UK instead.
-  it('R4 (as written): RJ, DL, UP are all linked because RJ borders UP', () => {
-    expect(linkedSet('GJ', 'KL', ['RJ', 'DL', 'UP'], adj)).toEqual(new Set(['RJ', 'DL', 'UP']));
-  });
-
   it('R4: RJ, DL, UK — still playing; RJ coloured; DL, UK grey', () => {
     const g = ['RJ', 'DL', 'UK'];
     expect(isWon('GJ', 'KL', g, adj)).toBe(false);
@@ -40,11 +34,11 @@ describe('routes (R1–R10)', () => {
     expect(replay('GJ', 'KL', g, ctx())).toEqual({ ok: true, status: 'playing' });
   });
 
-  it('R5: then HR — DL turns coloured (via HR), UK stays grey; then UP links UK; still playing', () => {
-    expect(linkedSet('GJ', 'KL', ['RJ', 'DL', 'UK', 'HR'], adj)).toEqual(new Set(['RJ', 'DL', 'HR']));
-    const g = ['RJ', 'DL', 'UK', 'HR', 'UP'];
+  it('R5: then UP — DL and UK turn coloured; still playing', () => {
+    const g = ['RJ', 'DL', 'UK', 'UP'];
     expect(linkedSet('GJ', 'KL', g, adj)).toEqual(new Set(g));
     expect(isWon('GJ', 'KL', g, adj)).toBe(false);
+    expect(replay('GJ', 'KL', g, ctx())).toEqual({ ok: true, status: 'playing' });
   });
 
   it('R6: UT step DD is coloured but not required', () => {
@@ -157,7 +151,7 @@ describe.skipIf(!puzzles || !daily)('V4: daily schedule', () => {
     const byId = new Map(puzzles!.map((p) => [p.id, p]));
     const entries = daily!.entries;
     expect(entries.length).toBeGreaterThanOrEqual(365);
-    expect(entries[0].date).toBe('2026-10-16');
+    expect(entries[0].date).toBe('2026-10-15');
     const dates = new Set<string>();
     const lastSeen = new Map<string, number>();
     entries.forEach((e, i) => {

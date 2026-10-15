@@ -21,6 +21,21 @@ export function useToday(): string {
   return today;
 }
 
+/** navigator.onLine, kept current via online/offline events. */
+export function useOnline(): boolean {
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false);
+  useEffect(() => {
+    const on = () => setOnline(navigator.onLine !== false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', on);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', on);
+    };
+  }, []);
+  return online;
+}
+
 export function useReducedMotion(): boolean {
   const query = '(prefers-reduced-motion: reduce)';
   const [reduced, setReduced] = useState(() => typeof matchMedia === 'function' && matchMedia(query).matches);

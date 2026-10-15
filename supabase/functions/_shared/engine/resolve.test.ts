@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalize } from './normalize.ts';
-import { buildAliasIndex, damerauLevenshtein, resolveInput } from './resolve.ts';
+import { buildAliasIndex, damerauLevenshtein, liveSuggestion, resolveInput } from './resolve.ts';
 import type { ResolveCtx } from './resolve.ts';
 import { index, regions } from './fixtures/data.ts';
 
@@ -104,5 +104,36 @@ describe('duplicates (D1)', () => {
     expect(r('Maharashtra')).toEqual({ type: 'accept', id: 'MH' });
     expect(r('mh', ['MH'])).toEqual({ type: 'reject', reason: 'duplicate' });
     expect(r('Maharastra', ['MH'])).toEqual({ type: 'reject', reason: 'duplicate' });
+  });
+});
+
+describe('live suggestions never reveal names early (I7)', () => {
+  const live = (raw: string, guesses: string[] = [], start = 'AS', end = 'PB') =>
+    liveSuggestion(raw, { start, end, guesses, index });
+
+  it('partial input shows nothing', () => {
+    for (const raw of ['a', 'ar', 'arun', 'kera', 'mani', 'pradesh', 'utt']) expect(live(raw), raw).toBeNull();
+  });
+  it('a complete name word or ≥ 75% of a name gives exactly one chip', () => {
+    expect(live('arunachal')).toBe('AR');
+    expect(live('keral')).toBe('KL');
+    expect(live('uttar')).toBe('UP'); // not Uttarakhand
+    expect(live('west')).toBe('WB');
+    expect(live('madhya')).toBe('MP');
+    expect(live('tamil')).toBe('TN');
+    expect(live('मध्य')).toBe('MP');
+  });
+  it('exact names and aliases get no chip (Enter accepts them)', () => {
+    for (const raw of ['mp', 'up', 'j&k', 'orissa', 'kerala', 'Goa']) expect(live(raw), raw).toBeNull();
+    expect(resolveInput('orissa', { start: 'AS', end: 'PB', guesses: [], index })).toEqual({ type: 'accept', id: 'OD' });
+  });
+  it('words shared by several regions give nothing', () => {
+    expect(live('and')).toBeNull();
+    expect(live('pradesh')).toBeNull();
+  });
+  it('endpoints, guesses and unplayable regions never produce a chip', () => {
+    expect(live('keral', [], 'KL', 'PB')).toBeNull();
+    expect(live('keral', ['KL'])).toBeNull();
+    expect(live('lakshadw')).toBeNull();
   });
 });

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run && playwright test",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "data:map": "tsx scripts/build-map.ts",
@@ -16,14 +16,20 @@
     "data:puzzles": "tsx scripts/gen-puzzles.ts",
     "data:sync": "tsx scripts/check-sync.ts",
     "data:build": "npm run data:map && npm run data:check && npm run data:validate && npm run data:puzzles && npm run data:sync",
-    "db:schedule": "tsx supabase/scripts/gen-schedule-migration.ts"
+    "db:schedule": "tsx supabase/scripts/gen-schedule-migration.ts",
+    "dev:offline": "vite --mode offline --host",
+    "build:offline": "tsc -b && vite build --mode offline",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource/baloo-2": "^5.3.0",
     "@supabase/supabase-js": "^2.118.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/d3-geo": "^3.1.1",

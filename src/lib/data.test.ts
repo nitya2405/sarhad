@@ -14,7 +14,7 @@ describe('shipped data as the UI reads it', () => {
   });
 
   it('every daily date resolves to a known puzzle between two states', () => {
-    for (const e of schedule.entries) {
+    for (const e of schedule!.entries) {
       const p = dailyPuzzle(e.date)!;
       expect(p).toBeDefined();
       expect(regionById.get(p.start)?.kind).toBe('state');

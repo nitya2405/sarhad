@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -9,8 +12,19 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["node"],
-    "paths": { "@engine/*": ["./supabase/functions/_shared/engine/*"] }
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@engine/*": [
+        "./supabase/functions/_shared/engine/*"
+      ]
+    }
   },
-  "include": ["vite.config.ts", "scripts"]
+  "include": [
+    "vite.config.ts",
+    "scripts",
+    "playwright.config.ts",
+    "e2e"
+  ]
 }

@@ -15,7 +15,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "types": ["vite/client", "vite-plugin-pwa/client"],
-    "paths": { "@engine/*": ["./supabase/functions/_shared/engine/*"] }
+    "paths": { "@engine/*": ["./supabase/functions/_shared/engine/*"], "@schedule": ["./src/lib/schedule.bundled.ts"] }
   },
   "include": ["src", "supabase/functions/_shared/engine", "data/*.json"]
 }

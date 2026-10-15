@@ -1,60 +1,203 @@
 @import "tailwindcss";
+/* Baloo 2, Latin subset only (Devanagari falls back to the phone's system font). font-display: swap. */
+@import "@fontsource/baloo-2/latin-600.css";
+@import "@fontsource/baloo-2/latin-800.css";
+
+/* Tokens: docs/DESIGN-SYSTEM.md. Tailwind utilities: bg-ink, text-ink-soft, bg-marigold, … */
+@theme {
+  --color-ink: #22306b;
+  --color-ink-soft: #57628f; /* secondary text, 5.48:1 on paper */
+  --color-ink-line: #767fa4; /* input/chip outlines, 3.64:1 on paper */
+  --color-paper: #f5f6fa;
+  --color-land: #e3e6f0;
+  --color-border: #aab2cc;
+  --color-marigold: #f4a10c;
+  --color-marigold-deep: #c46a00;
+  --color-slate: #8e97ae;
+  --color-kumkum: #b3261e;
+  --font-display: "Baloo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", sans-serif;
+  --radius-card: 14px;
+}
 
 :root {
-  --c-end: #0f766e;
-  --c-linked: #2dd4bf;
-  --c-grey: #a8a29e;
-  --c-land: #f8fafc;
-  --c-border: #94a3b8;
-  --c-ink: #0f172a;
-  --c-route: #b45309;
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
   margin: 0;
-  background: #fff;
-  color: var(--c-ink);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Devanagari', sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 :focus-visible {
-  outline: 3px solid #b45309;
+  outline: 3px solid var(--color-marigold-deep);
   outline-offset: 2px;
 }
 
-.map-label text {
-  fill: var(--c-ink);
-  font-weight: 600;
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- map ---------- */
+.region {
+  transition: fill 220ms var(--ease-out), stroke 220ms var(--ease-out);
+}
+.region.off {
+  transition-duration: 180ms;
+}
+.region.pop {
+  transform-box: view-box;
+  animation: pop 260ms var(--ease-out);
+}
+@keyframes pop {
+  from {
+    transform: scale(1.06);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.map-label {
+  fill: var(--color-ink);
+  font-family: var(--font-sans);
+  font-weight: 700;
   paint-order: stroke;
-  stroke: #fff;
-  stroke-width: 0.25em;
+  stroke: var(--color-paper);
   stroke-linejoin: round;
   pointer-events: none;
 }
 
-.route-draw {
-  stroke-dasharray: 1;
+/* the stitch: draw-in uses a mask line from dashoffset 1 → 0 */
+.stitch-draw {
+  stroke-dasharray: 1 1;
   stroke-dashoffset: 1;
-  animation: route-draw 2.4s ease-out 0.4s forwards;
+  animation: draw 350ms var(--ease-out) forwards;
 }
-
-@keyframes route-draw {
+@keyframes draw {
   to {
     stroke-dashoffset: 0;
   }
 }
 
+/* win: one pulse along the route, endpoints glow once */
+.route-pulse {
+  stroke-dasharray: 0.12 1.2;
+  stroke-dashoffset: 0.12;
+  animation: pulse-run 600ms ease-out forwards;
+}
+@keyframes pulse-run {
+  from {
+    stroke-dashoffset: 0.12;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: -1.08;
+    opacity: 0.2;
+  }
+}
+.glow {
+  animation: glow 700ms var(--ease-out) forwards;
+}
+@keyframes glow {
+  /* the element uses vector-effect: non-scaling-stroke, so these are screen px */
+  from {
+    stroke-opacity: 0.9;
+    stroke-width: 2px;
+  }
+  to {
+    stroke-opacity: 0;
+    stroke-width: 16px;
+  }
+}
+
+/* ---------- input feedback ---------- */
+.shake {
+  animation: shake 240ms ease-out;
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  16%,
+  50%,
+  83% {
+    transform: translateX(-6px);
+  }
+  33%,
+  66% {
+    transform: translateX(6px);
+  }
+}
+.slide-in {
+  animation: slide-in 200ms var(--ease-out);
+}
+@keyframes slide-in {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+}
+.chip-pulse {
+  animation: chip-pulse 350ms var(--ease-out);
+}
+@keyframes chip-pulse {
+  from {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-marigold-deep) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.fade-in {
+  animation: fade-in 200ms var(--ease-out);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: only colours change; nothing moves. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation: none !important;
-    transition: none !important;
+    transition-property: fill, stroke, background-color, color, border-color !important;
   }
-  .route-draw {
+  .stitch-draw {
     stroke-dashoffset: 0;
+  }
+  .route-pulse,
+  .glow {
+    display: none;
+  }
+}
+
+/* ---------- game header: one row; the pair drops to its own row when text is large ---------- */
+.game-head {
+  container-type: inline-size;
+}
+.game-head-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "back title time flag";
+  align-items: center;
+  column-gap: 0.25rem;
+}
+@container (max-width: 17rem) {
+  .game-head-grid {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "back time flag"
+      "title title title";
   }
 }

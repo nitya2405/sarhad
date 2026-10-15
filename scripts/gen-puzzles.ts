@@ -8,7 +8,7 @@ import { addDays } from '../supabase/functions/_shared/engine/time.ts';
 import { ADJACENCY_VERSION, fail, loadAdjacency, loadSourceRegions, p, writeJson } from './lib/common.ts';
 
 const SEED = 20261016;
-const FIRST_DATE = '2026-10-16';
+const FIRST_DATE = '2026-10-15';
 const DAYS = 365;
 const NO_REPEAT_DAYS = 60;
 const K_MIN = 2;

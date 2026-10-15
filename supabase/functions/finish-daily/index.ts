@@ -24,15 +24,22 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
 
-const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+// The project uses publishable/secret API keys: prefer an explicitly set secret key (sb_secret_…),
+// fall back to the legacy service-role key the platform injects.
+const SERVER_KEY = Deno.env.get('SARHAD_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const admin = SERVER_KEY
+  ? createClient(Deno.env.get('SUPABASE_URL')!, SERVER_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (!admin) return json({ error: 'misconfigured' }, 500);
 
-  const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  // The caller is verified here, not by the gateway (verify_jwt = false in config.toml: gateway JWT
+  // checks don't cover publishable keys / new signing keys). getUser asks Auth to validate the token,
+  // so a publishable key, an expired or a forged token all fail; the user id comes only from it.
+  const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
   if (!jwt) return json({ error: 'unauthorized' }, 401);
   const { data: auth, error: authErr } = await admin.auth.getUser(jwt);
   if (authErr || !auth.user) return json({ error: 'unauthorized' }, 401);
