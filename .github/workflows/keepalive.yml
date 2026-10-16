@@ -1,0 +1,29 @@
+# Free Supabase projects pause after a week without activity. Once a day, read the daily board
+# through the REST API with the publishable key (role anon; see migration 20261017000000_board_anon.sql).
+# Needs one repository secret: SUPABASE_PUBLISHABLE_KEY (Settings → Secrets and variables → Actions).
+name: keepalive
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # 08:47 IST daily
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call get_daily_board
+        env:
+          SUPABASE_URL: https://yqxvvxfodtlvdbzdwvhd.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "::error::secret SUPABASE_PUBLISHABLE_KEY is not set"; exit 1; }
+          today=$(date -u -d '+5 hours 30 minutes' +%F) # IST
+          curl -sS --fail-with-body --retry 3 --retry-delay 10 -o /dev/null -w "HTTP %{http_code}\n" \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/get_daily_board" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"p_date\":\"$today\"}"

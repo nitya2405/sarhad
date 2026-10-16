@@ -2,7 +2,7 @@
 -- P5 ("claims a win with an unlinked set") is decided by the Edge Function replay
 -- (supabase/functions/finish-daily/handler.test.ts); here we check the client cannot write a result at all.
 begin;
-select plan(36);
+select plan(38);
 
 -- ---------------------------------------------------------------- fixtures (as postgres)
 insert into auth.users (id, aud, role, is_anonymous) values
@@ -77,6 +77,8 @@ select lives_ok('select public.start_daily()', 'player 2 starts a daily');
 reset role;
 set local role anon;
 select throws_ok('select public.start_daily()', '42501', null, 'P6: anon role cannot call start_daily');
+select lives_ok($$select public.get_daily_board((now() at time zone 'Asia/Kolkata')::date)$$, 'anon role can read the board (keepalive)');
+select is((public.get_daily_board((now() at time zone 'Asia/Kolkata')::date))->'my_rank', 'null'::jsonb, 'anon board call has no rank');
 
 -- ---------------------------------------------------------------- service_role: finish_daily_commit
 reset role;
