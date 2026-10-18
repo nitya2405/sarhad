@@ -3,6 +3,7 @@ import { GUESS_CAP } from '@engine/index.ts';
 import { Countdown } from '../components/bits.tsx';
 import { Coach, coachSeen } from '../components/Coach.tsx';
 import { Hero } from '../components/Hero.tsx';
+import { NameCard } from '../components/NameCard.tsx';
 import { Coin, Flame } from '../components/pixel.tsx';
 import { elapsedMs, type Stats } from '../game/model.ts';
 import type { LocalAttempt, SavedPlayer } from '../game/storage.ts';
@@ -10,6 +11,7 @@ import { formatDate, formatTime } from '../lib/format.ts';
 import { hapticsOn, hapticsSupported, setHapticsOn } from '../lib/haptics.ts';
 import { serverEnabled } from '../lib/server.ts';
 import { dismissInstallTip, showInstallTip } from '../lib/persist.ts';
+import { localName } from '../lib/name.ts';
 
 interface Props {
   player: SavedPlayer;
@@ -36,6 +38,8 @@ const icon = 'btn btn-2 btn-icon';
 
 /** Home: a one-screen game menu. Status in the corners, the wordmark, the hero art, three big buttons. */
 export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, resumable, onDaily, onPractice, onOpen, onBoard }: Props) {
+  // First open: the name card, then How to play.
+  const [naming, setNaming] = useState(() => !coachSeen() && !localName());
   const [coach, setCoach] = useState(() => !coachSeen());
   const [haptics, setHaptics] = useState(hapticsOn);
   const [installTip, setInstallTip] = useState(showInstallTip);
@@ -78,7 +82,15 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
       </header>
 
       <h1 className="mt-2 text-center">
-        <span className="sticker sticker-inv text-[min(2.75rem,12.5vw)]">Sarhad</span>
+        {/* letters bob one after another, every 4 s (still with reduced motion) */}
+        <span className="sticker sticker-inv text-[min(2.75rem,12.5vw)]">
+          <span className="sr-only">Sarhad</span>
+          {'Sarhad'.split('').map((c, i) => (
+            <span key={i} className="wave" style={{ animationDelay: `${i * 110}ms` }} aria-hidden="true">
+              {c}
+            </span>
+          ))}
+        </span>
       </h1>
 
       <div className="relative mt-3 min-h-24 flex-1">
@@ -166,7 +178,7 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
           </a>
         </p>
       </footer>
-      {coach && <Coach onClose={() => setCoach(false)} />}
+      {naming ? <NameCard onDone={() => setNaming(false)} /> : coach && <Coach onClose={() => setCoach(false)} />}
     </div>
   );
 }

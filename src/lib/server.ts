@@ -175,7 +175,33 @@ export async function getDailyBoard(istDate: string): Promise<DailyBoard | null>
   }
 }
 
-/** Whether the caller still has the default display name (UI prompts after the first win). */
+export interface DailyStats {
+  /** finished attempts that date */
+  players: number;
+  /** median official time of the unflagged wins */
+  medianMs: number | null;
+  /** share of the other finished players the caller beat; null unless the caller won */
+  fasterThanPct: number | null;
+  /** most-guessed state; null until the caller has finished that day's daily */
+  topState: RegionId | null;
+}
+
+/** get_daily_stats(date) RPC: aggregates only. null when disabled, offline or not deployed yet. */
+export async function getDailyStats(istDate: string): Promise<DailyStats | null> {
+  try {
+    const c = await authed();
+    if (!c) return null;
+    const { data, error } = await c.rpc('get_daily_stats', { p_date: istDate });
+    if (error) throw error;
+    const d = data as { players?: number; median_ms?: number | null; faster_than_pct?: number | null; top_state?: string | null };
+    return { players: d.players ?? 0, medianMs: d.median_ms ?? null, fasterThanPct: d.faster_than_pct ?? null, topState: d.top_state ?? null };
+  } catch (e) {
+    console.warn('[sarhad] get_daily_stats failed', e);
+    return null;
+  }
+}
+
+/** Whether the caller still has the default display name. */
 export async function needsDisplayName(): Promise<boolean> {
   try {
     const c = await authed();

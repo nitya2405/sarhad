@@ -64,6 +64,7 @@ for (const size of SIZES) {
       expect(await noScroll(page), 'Home fits on one screen').toBeLessThanOrEqual(0);
 
       await page.getByRole('button', { name: /^Play daily/ }).click();
+      await page.waitForTimeout(250); // after the 180 ms slide-in
       await page.screenshot({ path: `test-results/screens/ready-${tag}.png` });
       await page.getByRole('button', { name: 'Start' }).click();
       await expect(page.getByText('Your guesses show here')).toBeVisible();
@@ -95,8 +96,12 @@ for (const size of SIZES) {
       expect(await noScroll(page), 'Home fits on one screen').toBeLessThanOrEqual(0);
     });
 
-    test('how to play, frames 1–3', async ({ page }) => {
+    test('name card, then how to play, frames 1–3', async ({ page }) => {
       await page.goto('/');
+      await expect(page.getByRole('dialog', { name: 'What should we call you?' })).toBeVisible();
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: `test-results/screens/name-${tag}.png` });
+      await page.getByRole('button', { name: "That's me" }).click();
       const coach = page.getByRole('dialog', { name: 'How to play' });
       for (let i = 1; i <= 3; i++) {
         await expect(coach).toBeVisible();

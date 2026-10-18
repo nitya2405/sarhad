@@ -3,7 +3,7 @@ import { isWon, linkedSet, shortestRouteWithin, type Puzzle, type RegionId } fro
 import { GuessInput } from '../components/GuessInput.tsx';
 import { GuessBar, GuessList } from '../components/GuessList.tsx';
 import { MapView } from '../components/MapView.tsx';
-import { BackButton, Pair, iconBtn } from '../components/ui.tsx';
+import { BackButton, Mark, Pair, iconBtn } from '../components/ui.tsx';
 import { adjacency, regionName } from '../lib/data.ts';
 import { formatClock } from '../lib/format.ts';
 import { PATTERN, buzz } from '../lib/haptics.ts';
@@ -28,7 +28,7 @@ export function Ready({ mode, busy, error, onStart, onHome }: ReadyProps) {
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
         <h1 className="text-5xl">
-          <Pair a="?" b="?" />
+          <Mark busy={busy} label="Starting" />
         </h1>
         <button
           autoFocus
@@ -78,6 +78,13 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
   }, [playing]);
   const [confirmGiveUp, setConfirmGiveUp] = useState(false);
   const [pulse, setPulse] = useState<{ id: RegionId; n: number }>();
+  const [toast, setToast] = useState<{ text: string; n: number }>();
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(undefined), 1300);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const say = (text: string) => setToast((t) => ({ text, n: (t?.n ?? 0) + 1 }));
 
   const ids = useMemo(() => attempt.guesses.map((g) => g.id), [attempt.guesses]);
   const linked = useMemo(() => linkedSet(puzzle.start, puzzle.end, ids, adjacency), [puzzle, ids]);
@@ -87,8 +94,14 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
 
   function guess(id: RegionId) {
     const next = [...ids, id];
-    if (isWon(puzzle.start, puzzle.end, next, adjacency)) buzz(PATTERN.won);
-    else buzz(linkedSet(puzzle.start, puzzle.end, next, adjacency).has(id) ? PATTERN.connected : PATTERN.accepted);
+    if (isWon(puzzle.start, puzzle.end, next, adjacency)) {
+      buzz(PATTERN.won);
+      say('Raasta clear!');
+    } else if (linkedSet(puzzle.start, puzzle.end, next, adjacency).has(id)) buzz(PATTERN.connected);
+    else {
+      buzz(PATTERN.accepted);
+      say('Galat mod!'); // not joined to either end (yet)
+    }
     onGuess(id, now());
   }
 
@@ -147,6 +160,13 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
             inset
             className="absolute inset-0"
           />
+          <div aria-live="polite" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+            {toast && (
+              <p key={toast.n} className="toast rounded-full border-2 border-ink bg-white px-4 py-1 font-display text-xl shadow-[0_3px_0_var(--color-ink)]">
+                {toast.text}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

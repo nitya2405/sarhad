@@ -24,6 +24,8 @@ function seedPractice(page: Page, puzzleId: string, ids: string[] = []) {
 
 /** Every HTML element of the page lies inside #root (SVG internals are clipped by their <svg>). */
 async function outsideColumn(page: Page): Promise<{ root: number; outside: string[] }> {
+  // measure after the 180 ms screen slide-in (#root clips it while it runs)
+  await page.waitForFunction(() => [...document.querySelectorAll('.screen')].every((el) => el.getAnimations().every((a) => a.playState === 'finished')));
   return page.evaluate(() => {
     const root = document.getElementById('root')!.getBoundingClientRect();
     const outside: string[] = [];
@@ -43,10 +45,14 @@ async function outsideColumn(page: Page): Promise<{ root: number; outside: strin
 test.describe('1440×900: the app is one ≤ 440px column', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('home and the coach', async ({ page }) => {
+  test('home, the name card and the coach', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('dialog', { name: 'How to play' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'What should we call you?' })).toBeVisible();
     let r = await outsideColumn(page);
+    expect(r.outside).toEqual([]);
+    await page.getByRole('button', { name: "That's me" }).click();
+    await expect(page.getByRole('dialog', { name: 'How to play' })).toBeVisible();
+    r = await outsideColumn(page);
     expect(r.root).toBeLessThanOrEqual(440);
     expect(r.outside).toEqual([]);
     await page.getByRole('button', { name: 'Skip' }).click();

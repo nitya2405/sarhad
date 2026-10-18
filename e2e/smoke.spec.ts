@@ -37,13 +37,20 @@ test('Home renders with the Play button (not a blank page)', async ({ page }) =>
   expect(errors).toEqual([]);
 });
 
-test('first open shows the 3-frame coach; tapping through closes it', async ({ page }) => {
+test('first open asks for a name, then shows the 3-frame coach; tapping through closes it', async ({ page }) => {
   // a genuinely first open: clear the flag on the first load only, not on the reload below
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('opened')) localStorage.removeItem('sarhad:coach');
     sessionStorage.setItem('opened', '1');
   });
   await page.goto('/');
+  const naming = page.getByRole('dialog', { name: 'What should we call you?' });
+  await expect(naming.getByLabel('Your name')).toHaveValue(/^Player [0-9A-F]{4}$/);
+  await expect(page.getByRole('dialog', { name: 'How to play' })).toHaveCount(0);
+  await naming.getByLabel('Your name').fill('Asha');
+  await naming.getByRole('button', { name: "That's me" }).click();
+  await expect(naming).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('sarhad:name'))).toBe('Asha'); // offline build: kept locally
   const coach = page.getByRole('dialog', { name: 'How to play' });
   await expect(coach).toContainText('Two states light up.');
   await expect(coach).toContainText('Join them by land.');

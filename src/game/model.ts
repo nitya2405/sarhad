@@ -1,5 +1,5 @@
 // Pure game logic over saved attempts (DESIGN "Game state machine"). No React, no storage access.
-import { GUESS_CAP, addDays, isWon, score, streak, type Adjacency, type Puzzle, type RegionId } from '@engine/index.ts';
+import { GUESS_CAP, addDays, isWon, score, shortestRouteWithin, streak, type Adjacency, type Puzzle, type RegionId } from '@engine/index.ts';
 import type { LocalAttempt, SavedPlayer } from './storage.ts';
 
 /** Practice attempts kept; dailies are kept for a year so the streak stays exact. */
@@ -123,6 +123,39 @@ export function bestTimes(player: SavedPlayer, n = 5): LocalAttempt[] {
     .filter((a) => a.mode === 'daily' && a.status === 'won')
     .sort((a, b) => elapsedMs(a) - elapsedMs(b) || a.guesses.length - b.guesses.length)
     .slice(0, n);
+}
+
+export interface YouStats {
+  /** playable states this phone has met: endpoints of finished games, and every state guessed */
+  discovered: Set<RegionId>;
+  /** wins whose route was as short as possible */
+  shortestRoutes: number;
+  /** fastest win (daily or practice): official time when the server has one */
+  fastestMs: number | null;
+}
+
+/** The "You" panel, from local data only. */
+export function youStats(
+  player: SavedPlayer,
+  puzzleOf: (id: string) => Puzzle | undefined,
+  adj: Adjacency,
+  playable: ReadonlySet<RegionId>,
+): YouStats {
+  const discovered = new Set<RegionId>();
+  let shortestRoutes = 0;
+  let fastestMs: number | null = null;
+  for (const a of player.attempts) {
+    if (!isFinished(a)) continue;
+    const p = puzzleOf(a.puzzleId);
+    if (!p) continue;
+    for (const id of [p.start, p.end, ...a.guesses.map((g) => g.id)]) if (playable.has(id)) discovered.add(id);
+    if (a.status !== 'won') continue;
+    const route = shortestRouteWithin(p.start, p.end, a.guesses.map((g) => g.id), adj);
+    if (route && route.length === p.shortest.length) shortestRoutes++;
+    const ms = a.serverTimeMs ?? elapsedMs(a);
+    if (fastestMs === null || ms < fastestMs) fastestMs = ms;
+  }
+  return { discovered, shortestRoutes, fastestMs };
 }
 
 /**

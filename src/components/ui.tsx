@@ -1,4 +1,5 @@
 // Small shared pieces of the visual language.
+import type { CSSProperties } from 'react';
 
 /** Round chunky icon button (white face, ink outline, grey lip). */
 export const iconBtn = 'btn btn-2 btn-icon';
@@ -10,6 +11,28 @@ export function BackButton({ onClick }: { onClick: () => void }) {
         <path d="M15 5l-7 7 7 7" />
       </svg>
     </button>
+  );
+}
+
+/**
+ * The '? ⋯⋯ ?' mark. `busy`: dots travel left to right and the question marks bob (loading:
+ * sign-in, start_daily, the leaderboard). Otherwise it idles slowly (the Ready screen).
+ */
+export function Mark({ busy, label = 'Loading', className = '' }: { busy?: boolean; label?: string; className?: string }) {
+  return (
+    <span
+      className={`mark font-display ${busy ? 'mark-busy' : ''} ${className}`}
+      role={busy ? 'status' : 'img'}
+      aria-label={busy ? label : 'Two hidden states'}
+    >
+      <span className="mark-q" aria-hidden="true">?</span>
+      <span className="mark-dots" aria-hidden="true">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <i key={i} style={{ '--i': i } as CSSProperties} />
+        ))}
+      </span>
+      <span className="mark-q mark-q2" aria-hidden="true">?</span>
+    </span>
   );
 }
 

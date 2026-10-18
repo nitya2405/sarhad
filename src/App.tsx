@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { istDate, type RegionId } from '@engine/index.ts';
 import { adjacency, dailyPuzzle, getPuzzle, randomPracticePuzzle } from './lib/data.ts';
 import { useAppHeight, useOnline, useToday } from './lib/hooks.ts';
 import { serverEnabled } from './lib/server.ts';
 import { uuid } from './lib/uuid.ts';
 import { requestPersistOnce } from './lib/persist.ts';
+import { syncName } from './lib/name.ts';
 import { activeAttempt, addGuess, createAttempt, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt } from './game/model.ts';
 import { loadPlayer, savePlayer, STORAGE_KEY, type LocalAttempt, type SavedPlayer } from './game/storage.ts';
 import { fetchDailyStart, openSessionWhenIdle, syncPending } from './game/sync.ts';
@@ -50,7 +51,10 @@ export function App() {
 
   useEffect(() => {
     // supabase-js loads after first paint; pending results are sent once signed in
-    const cancelIdle = openSessionWhenIdle(() => void syncPending(reload));
+    const cancelIdle = openSessionWhenIdle(() => {
+      void syncPending(reload);
+      void syncName(); // the name chosen on first open, once signed in
+    });
     const onStorage = (e: StorageEvent) => e.key === STORAGE_KEY && reload(); // F3: other tab wrote
     const onOnline = () => void syncPending(reload);
     window.addEventListener('storage', onStorage);
@@ -151,21 +155,30 @@ export function App() {
   }, [finishedId, finishedWon]);
   const puzzle = attempt && getPuzzle(attempt.puzzleId);
 
+  // Each screen slides/fades in over 180 ms (instant with reduced motion); the key restarts it.
+  const screen = (key: string, node: ReactNode) => (
+    <div key={key} className="screen">
+      {node}
+    </div>
+  );
+
   if (view.name === 'ready') {
-    return (
+    return screen(
+      'ready',
       <Ready
         mode={view.mode}
         busy={starting}
         error={view.mode === 'daily' ? startError : undefined}
         onStart={() => start(view)}
         onHome={() => setView({ name: 'home' })}
-      />
+      />,
     );
   }
 
   if (view.name === 'game' && attempt && puzzle) {
-    if (attempt.status === 'lost') return <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} onBoard={() => setView({ name: 'board' })} />;
-    return (
+    if (attempt.status === 'lost') return screen('result', <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} onBoard={() => setView({ name: 'board' })} />);
+    return screen(
+      'game',
       <Game
         attempt={attempt}
         puzzle={puzzle}
@@ -174,19 +187,20 @@ export function App() {
         onGiveUp={(now) => act(attempt.attemptId, (a) => giveUp(a, now))}
         onHome={() => setView({ name: 'home' })}
         onSkip={() => setView({ name: 'result', attemptId: attempt.attemptId })}
-      />
+      />,
     );
   }
 
   if (view.name === 'result' && attempt && puzzle) {
-    return <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} onBoard={() => setView({ name: 'board' })} />;
+    return screen('result', <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} onBoard={() => setView({ name: 'board' })} />);
   }
 
-  if (view.name === 'board') return <Board player={player} stats={s} today={today} onHome={() => setView({ name: 'home' })} />;
+  if (view.name === 'board') return screen('board', <Board player={player} stats={s} today={today} onHome={() => setView({ name: 'home' })} />);
 
   const todayAttempt = findDaily(player, today);
   const active = activeAttempt(player);
-  return (
+  return screen(
+    'home',
     <Home
       player={player}
       stats={s}
@@ -199,6 +213,6 @@ export function App() {
       onPractice={openPractice}
       onOpen={(a) => setView(viewFor(a))}
       onBoard={() => setView({ name: 'board' })}
-    />
+    />,
   );
 }

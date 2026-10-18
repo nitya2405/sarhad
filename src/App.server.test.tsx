@@ -4,9 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { getPuzzle, regionName } from './lib/data.ts';
 import { STORAGE_KEY } from './game/storage.ts';
-import type { ServerDailyStart } from './lib/server.ts';
+import type { DailyBoard, DailyStats, ServerDailyStart } from './lib/server.ts';
 
 const startDaily = vi.fn<() => Promise<ServerDailyStart | 'no_daily' | null>>();
+const setDisplayName = vi.fn<(n: string) => Promise<string | null>>(async () => null);
+const getDailyBoard = vi.fn<() => Promise<DailyBoard | null>>(async () => null);
+const getDailyStats = vi.fn<() => Promise<DailyStats | null>>(async () => null);
 
 vi.mock('./lib/server.ts', () => ({
   serverEnabled: true,
@@ -14,9 +17,10 @@ vi.mock('./lib/server.ts', () => ({
   ensureSession: async () => true,
   startDaily: () => startDaily(),
   finishDaily: async () => null,
-  getDailyBoard: async () => null,
+  getDailyBoard: () => getDailyBoard(),
+  getDailyStats: () => getDailyStats(),
   needsDisplayName: async () => false,
-  setDisplayName: async () => null,
+  setDisplayName: (n: string) => setDisplayName(n),
 }));
 
 const { App } = await import('./App.tsx');
@@ -74,5 +78,56 @@ describe('App (server build)', () => {
     await act(async () => fireEvent.click(screen.getByText('Start')));
     expect(screen.getByRole('alert').textContent).toBe('No daily today — try Practice');
     expect(localStorage.getItem(STORAGE_KEY) ?? '').not.toContain('"mode":"daily"');
+  });
+
+  it('first open asks for a name before How to play, and sends it to the server', async () => {
+    localStorage.removeItem('sarhad:coach');
+    setDisplayName.mockClear();
+    render(<App />);
+    const input = screen.getByLabelText('Your name') as HTMLInputElement;
+    expect(input.value).toMatch(/^Player [0-9A-F]{4}$/);
+    expect(screen.queryByRole('dialog', { name: 'How to play' })).toBeNull();
+    fireEvent.change(input, { target: { value: 'ab' } });
+    fireEvent.click(screen.getByText("That's me"));
+    expect(screen.getByRole('alert').textContent).toMatch(/3–20/);
+    fireEvent.change(input, { target: { value: '  Asha   K ' } });
+    await act(async () => fireEvent.click(screen.getByText("That's me")));
+    expect(screen.getByRole('dialog', { name: 'How to play' })).toBeTruthy();
+    expect(localStorage.getItem('sarhad:name')).toBe('Asha K');
+    expect(setDisplayName).toHaveBeenCalledWith('Asha K');
+    expect(localStorage.getItem('sarhad:name-synced')).toBe('Asha K');
+  });
+
+  it("leaderboard shows today's aggregates; without them the board still shows", async () => {
+    getDailyBoard.mockResolvedValue({ rows: [{ rank: 1, displayName: 'Asha', timeMs: 41_000, nGuesses: 3, isMe: false }], myRank: null, myReview: null });
+    getDailyStats.mockResolvedValue({ players: 12, medianMs: 45_000, fasterThanPct: 75, topState: 'MP' });
+    render(<App />);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Leaderboard' })));
+    expect(screen.getByText('Players')).toBeTruthy();
+    expect(screen.getByText('Median time')).toBeTruthy();
+    expect(screen.getByText(/You were faster than/).textContent).toBe('You were faster than 75% today');
+    expect(screen.getByText(/Most guessed today/).textContent).toContain(regionName('MP'));
+    expect(screen.getByText(/1\. Asha/)).toBeTruthy();
+    cleanup();
+
+    getDailyStats.mockResolvedValue(null); // not deployed / failed
+    render(<App />);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Leaderboard' })));
+    expect(screen.queryByText('Median time')).toBeNull();
+    expect(screen.getByText(/1\. Asha/)).toBeTruthy();
+  });
+
+  it("the '? ⋯⋯ ?' mark animates while start_daily and the leaderboard load", async () => {
+    startDaily.mockReturnValue(new Promise(() => {})); // never answers
+    getDailyBoard.mockReturnValue(new Promise(() => {}));
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /^Play daily/ }));
+    expect(screen.getByRole('img', { name: 'Two hidden states' })).toBeTruthy(); // idle on Ready
+    await act(async () => fireEvent.click(screen.getByText('Start')));
+    expect(screen.getByRole('status', { name: 'Starting' }).className).toContain('mark-busy');
+    cleanup();
+    render(<App />);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Leaderboard' })));
+    expect(screen.getByRole('status', { name: 'Loading leaderboard' }).className).toContain('mark-busy');
   });
 });

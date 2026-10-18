@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { Leaderboard, NamePrompt } from '../components/bits.tsx';
+import { useMemo, useState } from 'react';
+import { Leaderboard } from '../components/bits.tsx';
+import { MiniIndia } from '../components/MiniIndia.tsx';
+import { NameCard } from '../components/NameCard.tsx';
 import { BackButton } from '../components/ui.tsx';
-import { bestTimes, elapsedMs, type Stats } from '../game/model.ts';
+import { bestTimes, elapsedMs, youStats, type Stats } from '../game/model.ts';
 import type { SavedPlayer } from '../game/storage.ts';
-import { getPuzzle, regionName } from '../lib/data.ts';
+import { adjacency, getPuzzle, playableIds, regionName } from '../lib/data.ts';
 import { formatDate, formatTime } from '../lib/format.ts';
+import { localName, syncName } from '../lib/name.ts';
 import { serverEnabled } from '../lib/server.ts';
 
 interface Props {
@@ -14,10 +17,13 @@ interface Props {
   onHome: () => void;
 }
 
-/** Leaderboard (server builds: today's board) or My stats (offline: best times, wins, streaks). */
+/** Leaderboard (server builds: today's stats and board) and You (local: map of states met, records). */
 export function Board({ player, stats, today, onHome }: Props) {
   const best = bestTimes(player, 5);
+  const you = useMemo(() => youStats(player, getPuzzle, adjacency, playableIds), [player]);
   const [boardKey, setBoardKey] = useState(0);
+  const [name, setName] = useState(localName);
+  const [naming, setNaming] = useState(false);
   const tile = 'panel px-1 py-2.5 text-center';
   return (
     <div className="mx-auto flex min-h-[var(--app-h,100dvh)] flex-col gap-4 p-4">
@@ -26,23 +32,66 @@ export function Board({ player, stats, today, onHome }: Props) {
         <h1 className="font-display text-3xl uppercase tracking-wide">{serverEnabled ? 'Leaderboard' : 'My stats'}</h1>
       </header>
 
-      <dl className="grid grid-cols-3 gap-2">
-        <div className={tile}>
-          <dd className="num font-display text-3xl leading-none">{stats.wins}</dd>
-          <dt className="mt-1 text-xs text-muted">Wins</dt>
-        </div>
-        <div className={tile}>
-          <dd className="num font-display text-3xl leading-none">{stats.streak}</dd>
-          <dt className="mt-1 text-xs text-muted">Streak</dt>
-        </div>
-        <div className={tile}>
-          <dd className="num font-display text-3xl leading-none">{stats.best}</dd>
-          <dt className="mt-1 text-xs text-muted">Best streak</dt>
-        </div>
-      </dl>
+      {naming ? (
+        <NameCard
+          inline
+          onDone={(n) => {
+            setName(n);
+            setNaming(false);
+            void syncName().then(() => setBoardKey((k) => k + 1));
+          }}
+        />
+      ) : (
+        <p className="flex items-center justify-between gap-3 text-sm">
+          <span className="min-w-0 truncate">
+            {name ? (
+              <>
+                Playing as <span className="font-display text-base">{name}</span>
+              </>
+            ) : (
+              'No name yet'
+            )}
+          </span>
+          <button className="min-h-11 shrink-0 px-2 font-semibold underline" onClick={() => setNaming(true)}>
+            {name ? 'Change name' : 'Set name'}
+          </button>
+        </p>
+      )}
 
-      {serverEnabled && stats.wins > 0 && <NamePrompt onSaved={() => setBoardKey((k) => k + 1)} />}
       {serverEnabled && <Leaderboard date={today} refreshKey={boardKey} />}
+
+      <section aria-labelledby="you" className="panel p-4">
+        <h2 id="you" className="font-display text-lg uppercase tracking-wide">
+          You
+        </h2>
+        <div className="mt-1 flex items-center gap-3">
+          <MiniIndia on={you.discovered} className="h-28 w-24 shrink-0" />
+          <p className="flex flex-col">
+            <span className="num font-display text-4xl leading-none">
+              {you.discovered.size}/{playableIds.size}
+            </span>
+            <span className="text-sm text-muted">states discovered</span>
+          </p>
+        </div>
+        <dl className="mt-3 grid grid-cols-2 gap-2">
+          <div className={tile}>
+            <dd className="num font-display text-3xl leading-none">{you.shortestRoutes}</dd>
+            <dt className="mt-1 text-xs text-muted">Shortest routes</dt>
+          </div>
+          <div className={tile}>
+            <dd className="num font-display text-3xl leading-none">{you.fastestMs == null ? '—' : formatTime(you.fastestMs)}</dd>
+            <dt className="mt-1 text-xs text-muted">Fastest win</dt>
+          </div>
+          <div className={tile}>
+            <dd className="num font-display text-3xl leading-none">{stats.best}</dd>
+            <dt className="mt-1 text-xs text-muted">Best streak</dt>
+          </div>
+          <div className={tile}>
+            <dd className="num font-display text-3xl leading-none">{stats.wins}</dd>
+            <dt className="mt-1 text-xs text-muted">Wins</dt>
+          </div>
+        </dl>
+      </section>
 
       <section aria-labelledby="best" className="panel p-4">
         <h2 id="best" className="font-display text-lg uppercase tracking-wide">

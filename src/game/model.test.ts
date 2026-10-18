@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import adjJson from '../../data/adjacency.v1.json';
 import { istDate, type Adjacency, type Puzzle } from '@engine/index.ts';
 import { loadPlayer, savePlayer, STORAGE_KEY, SCHEMA_VERSION, type SavedPlayer } from './storage.ts';
-import { activeAttempt, addGuess, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt, createAttempt } from './model.ts';
+import { activeAttempt, addGuess, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt, createAttempt, youStats } from './model.ts';
 
 const adj = adjJson as Adjacency;
 const GJ_KL: Puzzle = { id: 'GJ-KL', start: 'GJ', end: 'KL', k: 2, shortest: ['GJ', 'MH', 'KA', 'KL'] };
@@ -118,5 +118,35 @@ describe('game model', () => {
     expect(a.status).toBe('won');
     expect(a.points).toBeUndefined();
     expect(stats(p, date)).toMatchObject({ streak: 0, wins: 0, totalPoints: 0 });
+  });
+});
+
+describe('youStats (the You panel)', () => {
+  const GJ_TN: Puzzle = { id: 'GJ-TN', start: 'GJ', end: 'TN', k: 2, shortest: ['GJ', 'MH', 'KA', 'TN'] };
+  const puzzleOf = (id: string) => ({ 'GJ-KL': GJ_KL, 'GJ-TN': GJ_TN })[id];
+  const playable = new Set(['GJ', 'MH', 'KA', 'KL', 'TN', 'MP', 'RJ', 'GA']);
+  const won = (id: string, puzzleId: string, guesses: string[], ms: number, extra = {}) => ({
+    attemptId: id, mode: 'practice' as const, puzzleId, startedAt: 0, finishedAt: ms, status: 'won' as const,
+    guesses: guesses.map((g, i) => ({ id: g, at: i + 1 })), ...extra,
+  });
+  it('counts states met, shortest wins and the fastest win', () => {
+    const p: SavedPlayer = {
+      playerId: 'p', streak: 0, best: 0, totalPoints: 0, prunedWins: 0,
+      attempts: [
+        won('a', 'GJ-KL', ['MH', 'KA'], 40_000), // shortest
+        won('b', 'GJ-KL', ['MP', 'MH', 'GA', 'KA'], 90_000), // MP, GA spare: still a 2-state route inside → shortest
+        won('c', 'GJ-TN', ['RJ', 'MP', 'MH', 'KA'], 30_000, { mode: 'daily', date: '2026-10-15', serverTimeMs: 31_000 }),
+        { attemptId: 'd', mode: 'practice', puzzleId: 'GJ-TN', startedAt: 0, status: 'lost', finishedAt: 5, guesses: [{ id: 'AN', at: 1 }] },
+        { attemptId: 'e', mode: 'practice', puzzleId: 'GJ-KL', startedAt: 0, status: 'playing', guesses: [{ id: 'PB', at: 1 }] },
+      ],
+    };
+    const y = youStats(p, puzzleOf, adj, playable);
+    expect([...y.discovered].sort()).toEqual(['GA', 'GJ', 'KA', 'KL', 'MH', 'MP', 'RJ', 'TN']); // AN not playable, PB unfinished
+    expect(y.shortestRoutes).toBe(3);
+    expect(y.fastestMs).toBe(31_000); // official server time wins over the local one
+  });
+  it('empty player', () => {
+    const y = youStats({ playerId: 'p', streak: 0, best: 0, totalPoints: 0, prunedWins: 0, attempts: [] }, puzzleOf, adj, playable);
+    expect(y).toEqual({ discovered: new Set(), shortestRoutes: 0, fastestMs: null });
   });
 });

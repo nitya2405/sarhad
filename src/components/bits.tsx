@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { nextIstMidnight } from '@engine/index.ts';
 import { formatCountdown, formatTime } from '../lib/format.ts';
 import { useNow } from '../lib/hooks.ts';
-import { getDailyBoard, needsDisplayName, setDisplayName, type DailyBoard } from '../lib/server.ts';
+import { getDailyBoard, getDailyStats, type DailyBoard, type DailyStats } from '../lib/server.ts';
+import { regionName } from '../lib/data.ts';
+import { Mark } from './ui.tsx';
 
 export function Countdown() {
   const now = useNow(1000);
@@ -13,14 +15,18 @@ export function Countdown() {
   );
 }
 
-/** Today's leaderboard (phase 2). Shown only when the server is enabled. */
+/** Today's stats and leaderboard (phase 2). Shown only when the server is enabled. */
 export function Leaderboard({ date, refreshKey }: { date: string; refreshKey: unknown }) {
   const [board, setBoard] = useState<DailyBoard | null | undefined>(undefined);
+  const [stats, setStats] = useState<DailyStats | null>(null);
   useEffect(() => {
     let live = true;
-    getDailyBoard(date)
-      .catch(() => null)
-      .then((b) => live && setBoard(b));
+    // the stats are optional: without them (offline, or not deployed yet) the board still shows
+    void Promise.all([getDailyBoard(date).catch(() => null), getDailyStats(date).catch(() => null)]).then(([b, s]) => {
+      if (!live) return;
+      setBoard(b);
+      setStats(s);
+    });
     return () => {
       live = false;
     };
@@ -31,8 +37,13 @@ export function Leaderboard({ date, refreshKey }: { date: string; refreshKey: un
       <h2 id="board" className="font-display text-lg uppercase tracking-wide">
         Today
       </h2>
-      {board === undefined && <p className="text-sm text-muted">Loading…</p>}
+      {board === undefined && (
+        <p className="py-2 text-center text-3xl">
+          <Mark busy label="Loading leaderboard" />
+        </p>
+      )}
       {board === null && <p className="text-sm text-muted">Leaderboard offline.</p>}
+      {board && stats && <TodayStats s={stats} />}
       {board && board.rows.length === 0 && <p className="text-sm text-muted">No winners yet.</p>}
       {board && board.rows.length > 0 && (
         <ol className="mt-1 flex flex-col gap-1 text-sm">
@@ -62,53 +73,31 @@ export function Leaderboard({ date, refreshKey }: { date: string; refreshKey: un
   );
 }
 
-/** Display-name prompt after the first win (phase 2). */
-export function NamePrompt({ onSaved }: { onSaved: () => void }) {
-  const [show, setShow] = useState(false);
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  useEffect(() => {
-    needsDisplayName()
-      .catch(() => false)
-      .then(setShow);
-  }, []);
-  if (!show) return null;
-
-  async function save(e: FormEvent) {
-    e.preventDefault();
-    let err: string | null;
-    try {
-      err = await setDisplayName(name);
-    } catch {
-      err = 'Could not save right now.';
-    }
-    if (err) return setError(err);
-    setShow(false);
-    onSaved();
-  }
-
+function TodayStats({ s }: { s: DailyStats }) {
+  const tile = 'rounded-card border-2 border-ink px-1 py-2 text-center';
   return (
-    <form onSubmit={save} className="panel flex flex-col gap-2 p-3">
-      <label htmlFor="display-name" className="font-semibold">
-        Your name on the board
-      </label>
-      <div className="flex gap-2">
-        <input
-          id="display-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={20}
-          autoComplete="nickname"
-          className="min-h-[52px] min-w-0 flex-1 rounded-card border-[3px] border-ink bg-white px-3 shadow-[0_3px_0_var(--color-border)] focus:outline-none focus:shadow-[0_4px_0_var(--color-ink)]"
-        />
-        <button className="btn mb-0 px-4 text-lg">Save</button>
-      </div>
-      <p>
-        <span role="status" className="err-pill text-sm">
-          {error}
-        </span>
-      </p>
-    </form>
+    <div className="mt-2 mb-3 flex flex-col gap-2">
+      <dl className="grid grid-cols-2 gap-2">
+        <div className={tile}>
+          <dd className="num font-display text-2xl leading-none">{s.players.toLocaleString('en-IN')}</dd>
+          <dt className="mt-1 text-xs text-muted">{s.players === 1 ? 'Player' : 'Players'}</dt>
+        </div>
+        <div className={tile}>
+          <dd className="num font-display text-2xl leading-none">{s.medianMs == null ? '—' : formatTime(s.medianMs)}</dd>
+          <dt className="mt-1 text-xs text-muted">Median time</dt>
+        </div>
+      </dl>
+      {s.fasterThanPct != null && (
+        <p className="text-sm">
+          You were faster than <span className="num font-display text-base">{s.fasterThanPct}%</span> today
+        </p>
+      )}
+      {s.topState && (
+        <p className="text-sm">
+          Most guessed today: <span className="font-display text-base">{regionName(s.topState)}</span>
+        </p>
+      )}
+    </div>
   );
 }
 

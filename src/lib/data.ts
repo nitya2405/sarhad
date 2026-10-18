@@ -24,6 +24,8 @@ export const puzzles: Puzzle[] = listOf<Puzzle>(puzzlesJson, 'puzzles');
 export const schedule = bundledSchedule;
 
 export const regionById = new Map(regions.map((r) => [r.id, r]));
+/** the 33 states and UTs with a land border (the islands are not playable) */
+export const playableIds: ReadonlySet<RegionId> = new Set(regions.filter((r) => r.playable).map((r) => r.id));
 const puzzleById = new Map(puzzles.map((p) => [p.id, p]));
 const dailyByDate = new Map((schedule?.entries ?? []).map((e) => [e.date, e.puzzleId]));
 

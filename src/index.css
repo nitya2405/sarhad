@@ -494,6 +494,112 @@ body[data-screen="home"] #root {
   }
 }
 
+/* ---------- screens: 180 ms slide/fade in (instant with reduced motion) ---------- */
+/* fill-mode backwards: no transform once it has run, so absolute/fixed children are unaffected */
+.screen {
+  position: relative;
+  min-height: var(--app-h, 100dvh);
+  animation: screen-in 180ms var(--ease-out) backwards;
+}
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+/* ---------- the '? ⋯⋯ ?' mark: loading (busy) and the Ready screen (idle) ---------- */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22em;
+  line-height: 1;
+}
+.mark-q {
+  display: inline-block;
+  animation: mark-bob 1.6s ease-in-out infinite alternate;
+}
+.mark-q2 {
+  animation-delay: -0.8s;
+}
+.mark-dots {
+  display: inline-flex;
+  gap: 0.1em;
+}
+.mark-dots i {
+  width: 0.14em;
+  height: 0.14em;
+  border-radius: 50%;
+  background: var(--color-red);
+  animation: mark-dot 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 200ms);
+}
+.mark-busy .mark-q {
+  animation-duration: 0.6s;
+}
+.mark-busy .mark-q2 {
+  animation-delay: -0.3s;
+}
+.mark-busy .mark-dots i {
+  animation-duration: 0.9s;
+  animation-delay: calc(var(--i) * 75ms);
+}
+@keyframes mark-bob {
+  from {
+    transform: translateY(0.06em);
+  }
+  to {
+    transform: translateY(-0.1em);
+  }
+}
+@keyframes mark-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+/* ---------- Home wordmark: a wave across the letters every 4 s ---------- */
+.wave {
+  display: inline-block;
+  animation: wave 4s ease-in-out infinite;
+}
+@keyframes wave {
+  0%,
+  12%,
+  100% {
+    transform: translateY(0);
+  }
+  6% {
+    transform: translateY(-0.14em);
+  }
+}
+
+/* ---------- game toast: "Raasta clear!", "Galat mod!" ---------- */
+.toast {
+  animation: toast 1300ms var(--ease-out) forwards;
+}
+@keyframes toast {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  15%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Reduced motion: only colours change; nothing moves. */
 @media (prefers-reduced-motion: reduce) {
   *,
