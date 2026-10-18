@@ -20,17 +20,26 @@ npm run dev:offline        # http://localhost:5173 — no server, bundled schedu
 
 `dev:offline` ignores `.env` completely: no sign-in and no network, and the daily comes from the bundled `src/data/daily.json`. Use it for UI work.
 
+With npm 11, `npm ci` may warn that the install scripts of `better-sqlite3` and `msgpackr-extract` were skipped. Both are optional native parts of `mapshaper` (GeoPackage support and a msgpack speed-up), which this project doesn't use. You can ignore the warning.
+
 ### With a backend
 
 Use a local Supabase while developing. Plain `npm run dev` against the hosted project creates a real anonymous user on every fresh browser.
 
+Docker (Docker Desktop on Windows and macOS) must be running. The first `supabase start` downloads the Supabase images, a few GB, and takes several minutes.
+
 ```sh
 npx supabase start -x logflare,vector     # local stack in Docker; applies supabase/migrations
-npx supabase status                       # prints the local API URL and publishable key
-cp .env.example .env                      # put the local URL and key in .env
+npx supabase status -o env                # prints API_URL=… and PUBLISHABLE_KEY=… among others
+cp .env.example .env
+#   VITE_SUPABASE_URL      = the API_URL value       (http://127.0.0.1:54321)
+#   VITE_SUPABASE_ANON_KEY = the PUBLISHABLE_KEY value (sb_publishable_…)
 npm run dev
 npx supabase functions serve finish-daily --no-verify-jwt   # in a second terminal
+npx supabase stop                         # when you're done
 ```
+
+Locally it's fine to play the daily through to the end: it writes only to your local database.
 
 ## Environment variables
 
@@ -78,6 +87,12 @@ If the network fails, the local result stays and retries with backoff.
 
 ## Tests
 
+Once per machine, install the browser Playwright uses. `test:e2e` and `npm run icons` need it:
+
+```sh
+npx playwright install chromium
+```
+
 ```sh
 npm run typecheck
 npm run test:unit          # Vitest: engine, model, storage, labels, App (offline + server, server mocked)
@@ -103,11 +118,14 @@ npm run db:schedule    # regenerates the schedule seed migration from src/data/d
 
 The border graph `data/adjacency.v1.json` is curated by hand. The map is only a cross-check (see `ADJACENCY_NOTES.md`).
 
+The scripts are deterministic: on an unchanged checkout, `data:build` and `db:schedule` reproduce the committed files exactly, so `git diff` stays empty. On Windows, `git status` may still list the regenerated JSON files as modified. That's only line endings: Git checks the files out with CRLF and the scripts write LF, and `git add` normalises them back.
+
 Generated assets (commit the output):
 
 ```sh
 npm run icons          # app icon + favicon + PWA PNGs (public/), rendered with Playwright's Chromium
-npm run font:wordmark  # Silkscreen subset for the wordmark (needs Python fontTools)
+npm run font:wordmark  # Silkscreen subset for the wordmark; needs Python with fontTools and brotli:
+                       #   pip install fonttools brotli
 ```
 
 ## Deploy
