@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import adjacency from '../../../data/adjacency.v1.json';
 import regionsFile from '../../../data/regions.json';
-import { decideFinish, parseBody } from './handler.ts';
+import { decideFinish, parseBody, storedResponse } from './handler.ts';
 import type { AttemptRow, FinishBody, GameData, ScheduleRow } from './handler.ts';
 
 const regions = regionsFile.regions;
@@ -45,8 +45,22 @@ describe('finish-daily handler', () => {
   it('P2: an already finished attempt returns the stored result unchanged', () => {
     const done: AttemptRow = { ...playing, status: 'won', guesses: ['MH', 'KA'], time_ms: 12_345, points: 222 };
     expect(decide(['RJ'], true, { attempt: done })).toEqual({
-      kind: 'stored', response: { status: 'won', timeMs: 12_345, points: 222, guesses: ['MH', 'KA'] },
+      kind: 'stored', response: { status: 'won', timeMs: 12_345, points: 222, guesses: ['MH', 'KA'], flagged: false },
     });
+  });
+
+  it('fast-finish guard: a stored flagged win comes back flagged (the database decides, at commit)', () => {
+    const fast: AttemptRow = { ...playing, status: 'won', guesses: ['MH', 'KA'], time_ms: 1_900, points: 290, flagged: true };
+    expect(decide(['MH', 'KA'], false, { attempt: fast })).toEqual({
+      kind: 'stored', response: { status: 'won', timeMs: 1_900, points: 290, guesses: ['MH', 'KA'], flagged: true },
+    });
+    // the committed row is returned as-is, so a fresh fast win reports the flag finish_daily_commit set
+    expect(storedResponse({ ...fast, flagged: true }).flagged).toBe(true);
+    expect(storedResponse({ ...fast, flagged: undefined }).flagged).toBe(false);
+  });
+
+  it('fast-finish guard: a fast win is still committed as a normal win with points (not rejected)', () => {
+    expect(decide(['MH', 'KA'], false, { nowMs: START + 1_900 })).toMatchObject({ kind: 'commit', status: 'won', timeMs: 1_900 });
   });
 
   it('P4: rejects unknown ids, duplicates, endpoints, unplayable, guesses after the win', () => {

@@ -214,6 +214,7 @@ Haptics are feature-detected and can be switched off on Home (saved per device, 
     - a 'See map' link
     - for dailies, the streak line and 'Next in', small
     - the map credit
+  - **Flagged win:** one small muted line, 'Under review: very fast finish'. The leaderboard shows the player's own time as 'under review' in place of a rank.
   - **See map:** closes the card to inspect the route. A RESULTS button brings it back, and 'Show shortest route' lives only in this view.
   - **Display name:** the prompt moved to the Leaderboard screen.
 - **Home buttons:**
@@ -221,3 +222,4 @@ Haptics are feature-detected and can be switched off on Home (saved per device, 
   - Before today's daily is done, the daily button is the primary (white) one.
   - Once it's done, Leaderboard becomes the primary button in server builds; offline builds make Practice primary instead.
   - An unfinished daily from another day shows a small 'Continue the {date} daily' link.
+  - On iOS Safari outside the installed app, a one-line white tip sits above the buttons: 'Add to Home Screen to keep your streak.'. It has a ✕, and dismissal is remembered per device.

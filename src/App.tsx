@@ -4,6 +4,7 @@ import { adjacency, dailyPuzzle, getPuzzle, randomPracticePuzzle } from './lib/d
 import { useAppHeight, useOnline, useToday } from './lib/hooks.ts';
 import { serverEnabled } from './lib/server.ts';
 import { uuid } from './lib/uuid.ts';
+import { requestPersistOnce } from './lib/persist.ts';
 import { activeAttempt, addGuess, createAttempt, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt } from './game/model.ts';
 import { loadPlayer, savePlayer, STORAGE_KEY, type LocalAttempt, type SavedPlayer } from './game/storage.ts';
 import { fetchDailyStart, openSessionWhenIdle, syncPending } from './game/sync.ts';
@@ -80,6 +81,7 @@ export function App() {
     const next = upsertAttempt(fresh, change(stored), istDate(Date.now()));
     commit(next);
     const saved = next.attempts.find((a) => a.attemptId === attemptId)!;
+    if (saved.status !== 'playing') requestPersistOnce(); // after the first finished game, once
     if (saved.status !== 'playing' && saved.mode === 'daily') void syncPending(reload);
   }
 

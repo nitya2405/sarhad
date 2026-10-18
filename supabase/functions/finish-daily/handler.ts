@@ -18,6 +18,8 @@ export interface AttemptRow {
   guesses: RegionId[];
   time_ms: number | null;
   points: number | null;
+  /** set by finish_daily_commit for an impossibly fast win (kept off the public board) */
+  flagged?: boolean;
 }
 
 export interface ScheduleRow {
@@ -38,6 +40,8 @@ export interface FinishResponse {
   timeMs: number | null;
   points: number;
   guesses: RegionId[];
+  /** very fast win: stored and scored, but under review and off the board */
+  flagged: boolean;
 }
 
 export type Decision =
@@ -61,7 +65,7 @@ export function parseBody(raw: unknown): FinishBody | string {
 }
 
 export function storedResponse(a: AttemptRow): FinishResponse {
-  return { status: a.status, timeMs: a.time_ms, points: a.points ?? 0, guesses: a.guesses };
+  return { status: a.status, timeMs: a.time_ms, points: a.points ?? 0, guesses: a.guesses, flagged: a.flagged ?? false };
 }
 
 /**

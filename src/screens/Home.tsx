@@ -9,6 +9,7 @@ import type { LocalAttempt, SavedPlayer } from '../game/storage.ts';
 import { formatDate, formatTime } from '../lib/format.ts';
 import { hapticsOn, hapticsSupported, setHapticsOn } from '../lib/haptics.ts';
 import { serverEnabled } from '../lib/server.ts';
+import { dismissInstallTip, showInstallTip } from '../lib/persist.ts';
 
 interface Props {
   player: SavedPlayer;
@@ -37,6 +38,7 @@ const icon = 'btn btn-2 btn-icon';
 export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, resumable, onDaily, onPractice, onOpen, onBoard }: Props) {
   const [coach, setCoach] = useState(() => !coachSeen());
   const [haptics, setHaptics] = useState(hapticsOn);
+  const [installTip, setInstallTip] = useState(showInstallTip);
   const done = todayAttempt && todayAttempt.status !== 'playing' ? todayAttempt : undefined;
   // One practice button: continue the one in progress, or start a new one.
   const practicing = resumable?.mode === 'practice' ? resumable : undefined;
@@ -82,6 +84,22 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
       <div className="relative mt-3 min-h-24 flex-1">
         <Hero className="absolute inset-0 h-full w-full" />
       </div>
+
+      {installTip && (
+        <p className="mt-2 flex items-center gap-1 rounded-full border-2 border-ink bg-white pl-3 text-sm font-semibold text-ink">
+          <span className="min-w-0 flex-1">Add to Home Screen to keep your streak.</span>
+          <button
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-base"
+            aria-label="Dismiss tip"
+            onClick={() => {
+              dismissInstallTip();
+              setInstallTip(false);
+            }}
+          >
+            ✕
+          </button>
+        </p>
+      )}
 
       <nav aria-label={`Today, ${formatDate(today)}`} className="mt-3 flex flex-col gap-3">
         {dailyNote && !todayAttempt && (

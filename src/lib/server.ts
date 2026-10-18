@@ -24,6 +24,8 @@ export interface ServerDailyResult {
   timeMs: number | null;
   points: number;
   guesses: RegionId[];
+  /** very fast win: stored and scored, but under review and off the public board */
+  flagged: boolean;
 }
 
 export interface BoardRow {
@@ -38,6 +40,8 @@ export interface DailyBoard {
   rows: BoardRow[];
   /** caller's rank among today's winners, null if not a winner */
   myRank: number | null;
+  /** the caller's own win when it is flagged (under review, not on the board) */
+  myReview: { timeMs: number; nGuesses: number } | null;
 }
 
 /**
@@ -145,7 +149,7 @@ export async function finishDaily(attemptId: string, guesses: RegionId[], finish
     return null;
   }
   const d = data as ServerDailyResult;
-  return { status: d.status, timeMs: d.timeMs ?? null, points: d.points ?? 0, guesses: d.guesses ?? [] };
+  return { status: d.status, timeMs: d.timeMs ?? null, points: d.points ?? 0, guesses: d.guesses ?? [], flagged: d.flagged ?? false };
 }
 
 /** get_daily_board(date) RPC: top 50 winners + caller's rank. null when disabled or offline. */
@@ -155,10 +159,15 @@ export async function getDailyBoard(istDate: string): Promise<DailyBoard | null>
     if (!c) return null;
     const { data, error } = await c.rpc('get_daily_board', { p_date: istDate });
     if (error) throw error;
-    const d = data as { rows: { rank: number; display_name: string; time_ms: number; n_guesses: number; is_me: boolean }[]; my_rank: number | null };
+    const d = data as {
+      rows: { rank: number; display_name: string; time_ms: number; n_guesses: number; is_me: boolean }[];
+      my_rank: number | null;
+      my_review?: { time_ms: number; n_guesses: number } | null;
+    };
     return {
       rows: d.rows.map((r) => ({ rank: r.rank, displayName: r.display_name, timeMs: r.time_ms, nGuesses: r.n_guesses, isMe: r.is_me })),
       myRank: d.my_rank,
+      myReview: d.my_review ? { timeMs: d.my_review.time_ms, nGuesses: d.my_review.n_guesses } : null,
     };
   } catch (e) {
     console.warn('[sarhad] get_daily_board failed', e);

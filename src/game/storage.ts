@@ -13,6 +13,8 @@ export interface LocalAttempt extends Attempt {
   /** official result from the server, once confirmed */
   serverTimeMs?: number | null;
   serverPoints?: number;
+  /** the server flagged this win as very fast: under review, not on the public board */
+  serverFlagged?: boolean;
 }
 
 export interface SavedPlayer extends LocalPlayer {

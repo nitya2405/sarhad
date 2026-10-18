@@ -71,7 +71,7 @@ async function syncOne(a: LocalAttempt): Promise<boolean> {
     return false;
   }
   if (!r || r.status === 'playing') return false;
-  update(a.attemptId, { pendingSync: false, serverTimeMs: r.timeMs, serverPoints: r.points });
+  update(a.attemptId, { pendingSync: false, serverTimeMs: r.timeMs, serverPoints: r.points, serverFlagged: r.flagged });
   return true;
 }
 

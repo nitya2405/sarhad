@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
   const { data: attempt, error: aErr } = await admin
     .from('daily_attempts')
-    .select('id, player_id, ist_date, puzzle_id, started_at, status, guesses, time_ms, points')
+    .select('id, player_id, ist_date, puzzle_id, started_at, status, guesses, time_ms, points, flagged')
     .eq('id', body.attemptId)
     .maybeSingle<AttemptRow>();
   if (aErr) return json({ error: 'db_error' }, 500);

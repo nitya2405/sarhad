@@ -53,6 +53,11 @@ export function Leaderboard({ date, refreshKey }: { date: string; refreshKey: un
         </ol>
       )}
       {board?.myRank != null && !board.rows.some((r) => r.isMe) && <p className="mt-1 text-sm">Your rank: {board.myRank}</p>}
+      {board?.myReview && (
+        <p className="mt-1 text-sm text-muted">
+          You: <span className="num">{formatTime(board.myReview.timeMs)} · {board.myReview.nGuesses}</span> (under review: very fast finish)
+        </p>
+      )}
     </section>
   );
 }

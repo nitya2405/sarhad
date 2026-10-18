@@ -117,6 +117,7 @@ export function Result({ attempt, puzzle, stats, onPractice, onHome, onBoard }: 
               {foundShortest ? 'Shortest route ✓' : `Shortest: ${puzzle.k} ${puzzle.k === 1 ? 'state' : 'states'}`}
             </p>
             {daily && attempt.pendingSync && serverEnabled && <p className="text-xs text-muted">Sending your result…</p>}
+            {won && attempt.serverFlagged && <p className="text-xs font-semibold text-muted">Under review: very fast finish</p>}
 
             <div className="grid w-full grid-cols-2 gap-3 pt-1">
               {daily ? (
