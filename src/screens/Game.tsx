@@ -24,7 +24,7 @@ export function Ready({ mode, busy, error, onStart, onHome }: ReadyProps) {
     <div className="mx-auto flex min-h-[var(--app-h,100dvh)] max-w-md flex-col p-4">
       <div className="flex items-center justify-between">
         <BackButton onClick={onHome} />
-        <span className="text-sm font-semibold text-ink-soft">{mode === 'daily' ? 'Today' : 'Practice'}</span>
+        <span className="font-display text-base uppercase tracking-wide text-muted">{mode === 'daily' ? 'Today' : 'Practice'}</span>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
         <h1 className="text-5xl">
@@ -33,14 +33,16 @@ export function Ready({ mode, busy, error, onStart, onHome }: ReadyProps) {
         <button
           autoFocus
           disabled={busy}
-          className="min-h-14 w-full max-w-xs rounded-card bg-ink px-6 font-display text-2xl font-extrabold text-paper disabled:opacity-60"
+          className="btn w-full max-w-xs text-2xl"
           onClick={onStart}
         >
           {busy ? 'Starting…' : error ? 'Try again' : 'Start'}
         </button>
-        <p className="text-ink-soft">Clock starts when you tap.</p>
-        <p role="alert" className="min-h-6 text-sm font-semibold text-kumkum">
-          {error}
+        <p className="text-muted">Clock starts when you tap.</p>
+        <p className="min-h-8">
+          <span role="alert" className="err-pill text-sm">
+            {error}
+          </span>
         </p>
       </div>
     </div>
@@ -96,7 +98,7 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
       onClick={won ? onSkip : undefined}
       onKeyDown={won ? onSkip : undefined}
     >
-      <header className="game-head px-4 pt-1">
+      <header className="game-head px-4 pt-2">
         <div className="game-head-grid">
           <span style={{ gridArea: 'back' }}>
             <BackButton onClick={onHome} />
@@ -104,7 +106,7 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
           <h1 className="min-w-0 text-lg leading-tight text-balance" style={{ gridArea: 'title' }}>
             <Pair a={regionName(puzzle.start)} b={regionName(puzzle.end)} />
           </h1>
-          <span className="num justify-self-end font-display text-xl font-extrabold" style={{ gridArea: 'time' }} aria-label="Time">
+          <span className="num justify-self-end font-display text-2xl" style={{ gridArea: 'time' }} aria-label="Time">
             {formatClock(shownMs)}
           </span>
           {playing && (
@@ -116,12 +118,12 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
           )}
         </div>
         {confirmGiveUp && playing ? (
-          <div className="fade-in flex items-center justify-end gap-2 pb-1 text-sm">
-            <span>Give up?</span>
-            <button className="min-h-11 rounded-card px-3 font-semibold text-kumkum" onClick={() => onGiveUp(now())}>
+          <div className="fade-in flex flex-wrap items-center justify-end gap-2 pb-1 text-sm">
+            <span className="font-semibold">Give up?</span>
+            <button className="btn btn-2 min-h-11 px-3 text-base" onClick={() => onGiveUp(now())}>
               Yes, give up
             </button>
-            <button className="min-h-11 rounded-card px-3 font-semibold" onClick={() => setConfirmGiveUp(false)}>
+            <button className="btn min-h-11 px-3 text-base" onClick={() => setConfirmGiveUp(false)}>
               Keep playing
             </button>
           </div>

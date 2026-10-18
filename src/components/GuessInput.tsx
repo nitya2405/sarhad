@@ -112,7 +112,7 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
           <button
             type="button"
             onClick={() => accept(chip)}
-            className="fade-in inline-flex min-h-11 items-center gap-1 rounded-full bg-marigold px-4 font-display text-base font-semibold text-ink"
+            className="fade-in inline-flex min-h-11 items-center gap-1 rounded-full border-2 border-ink bg-red px-4 font-display text-base text-white"
           >
             {didYouMean?.id === chip ? `Did you mean ${regionName(chip)}?` : regionName(chip)}
             <span aria-hidden="true"> ↵</span>
@@ -123,9 +123,7 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
           key={msgKey}
           role="status"
           aria-live="polite"
-          className={`min-w-0 flex-1 text-sm ${message ? 'slide-in' : ''} ${
-            message ? 'font-semibold text-kumkum' : 'text-ink-soft'
-          } ${chip ? 'sr-only' : ''}`}
+          className={`min-w-0 text-sm ${message ? 'err-pill slide-in' : 'flex-1 text-muted'} ${chip ? 'sr-only' : ''}`}
         >
           {line}
         </p>
@@ -150,9 +148,9 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
           enterKeyHint="go"
           maxLength={80}
           placeholder="Type a state…"
-          className="min-h-12 min-w-0 flex-1 rounded-card border-2 border-ink-line bg-white px-4 text-base text-ink placeholder:text-ink-soft focus:border-ink focus:outline-none focus-visible:outline-none"
+          className="min-h-[52px] min-w-0 flex-1 rounded-card border-[3px] border-ink bg-white px-4 text-base text-ink placeholder:text-muted shadow-[0_3px_0_var(--color-border)] focus:outline-none focus-visible:outline-none focus:shadow-[0_4px_0_var(--color-ink)]"
         />
-        <button type="submit" aria-label="Enter" className="min-h-[48px] min-w-[48px] rounded-card bg-ink px-3 font-display text-xl font-extrabold text-paper">
+        <button type="submit" aria-label="Enter" className="btn btn-icon btn-red mb-0 min-h-[52px] w-[56px] text-2xl">
           ↵
         </button>
       </div>

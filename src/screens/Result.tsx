@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { GUESS_CAP, linkedSet, shortestRouteWithin, type Puzzle } from '@engine/index.ts';
 import { Countdown, Footer, Leaderboard, NamePrompt } from '../components/bits.tsx';
 import { MapView } from '../components/MapView.tsx';
+import { Flame, Hearts } from '../components/pixel.tsx';
 import { BackButton, Pair } from '../components/ui.tsx';
 import { adjacency, regionName } from '../lib/data.ts';
 import { formatDate, formatTime } from '../lib/format.ts';
@@ -50,38 +51,41 @@ export function Result({ attempt, puzzle, stats, onPractice, onHome }: Props) {
   const time = attempt.serverTimeMs ?? elapsedMs(attempt);
   const points = useCountUp(daily ? (attempt.serverPoints ?? attempt.points ?? 0) : 0);
 
-  const heading = won ? 'Linked!' : ids.length >= GUESS_CAP ? 'Out of guesses' : 'You gave up';
-  const big = 'num font-display text-3xl font-extrabold leading-none';
+  const heading = won ? 'Connected!' : 'Game over';
+  const lossReason = won ? null : ids.length >= GUESS_CAP ? 'Out of guesses' : 'You gave up';
+  const big = 'num font-display text-3xl leading-none';
 
   return (
     <div className="mx-auto flex min-h-[var(--app-h,100dvh)] max-w-md flex-col gap-4 p-4">
-      <header className="flex items-center gap-1">
+      <header className="flex items-start gap-3">
         <BackButton onClick={onHome} />
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-3xl font-extrabold leading-tight">{heading}</h1>
-          <p className="truncate text-ink-soft">
-            {daily ? formatDate(attempt.date!) : 'Practice'} · <Pair a={regionName(puzzle.start)} b={regionName(puzzle.end)} className="font-semibold" />
+          <h1 className="sticker mt-1 text-[min(1.375rem,6.6vw)]">{heading}</h1>
+          <p className="mt-3 text-muted">
+            {lossReason && <span className="font-semibold text-ink">{lossReason} · </span>}
+            {daily ? formatDate(attempt.date!) : 'Practice'} · <Pair a={regionName(puzzle.start)} b={regionName(puzzle.end)} className="inline-block text-ink" />
           </p>
         </div>
       </header>
 
       <dl className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-card bg-white p-3">
+        <div className="panel px-1 py-3">
           <dd className={big}>{won ? formatTime(time) : '–'}</dd>
-          <dt className="mt-1 text-xs text-ink-soft">{official ? 'Official time' : 'Time'}</dt>
+          <dt className="mt-1 text-xs text-muted">{official ? 'Official time' : 'Time'}</dt>
         </div>
-        <div className="rounded-card bg-white p-3">
+        <div className="panel px-1 py-3">
           <dd className={big}>{ids.length}</dd>
-          <dt className="mt-1 text-xs text-ink-soft">Guesses</dt>
+          <dt className="mt-1 text-xs text-muted">Guesses</dt>
         </div>
-        <div className="rounded-card bg-white p-3">
+        <div className="panel px-1 py-3">
           <dd className={big} aria-label={daily ? undefined : 'unscored'}>
             {daily ? points : '–'}
           </dd>
-          <dt className="mt-1 text-xs text-ink-soft">{daily ? 'Points' : 'Unscored'}</dt>
+          <dt className="mt-1 text-xs text-muted">{daily ? 'Points' : 'Unscored'}</dt>
         </div>
       </dl>
-      {daily && attempt.pendingSync && serverEnabled && <p className="text-xs text-ink-soft">Sending your result…</p>}
+      <Hearts used={ids.length} />
+      {daily && attempt.pendingSync && serverEnabled && <p className="text-xs text-muted">Sending your result…</p>}
 
       <MapView
         start={puzzle.start}
@@ -95,24 +99,26 @@ export function Result({ attempt, puzzle, stats, onPractice, onHome }: Props) {
 
       <section aria-label="Route" className="text-center">
         {foundShortest ? (
-          <p className="font-display text-xl font-extrabold">You found a shortest route!</p>
+          <p className="font-display text-xl">You found a shortest route!</p>
         ) : (
           <>
-            <p className="font-display text-lg font-semibold">
+            <p className="font-display text-lg">
               One shortest route needs {puzzle.k} {puzzle.k === 1 ? 'state' : 'states'}
             </p>
-            <p className="text-ink-soft">{puzzle.shortest.slice(1, -1).map(regionName).join(' · ')}</p>
+            <p className="text-muted">{puzzle.shortest.slice(1, -1).map(regionName).join(' · ')}</p>
           </>
         )}
       </section>
 
       {daily && (
         <>
-          <p className="num text-center font-display text-lg font-semibold">
-            <span aria-hidden="true">🔥</span> {stats.streak} <span className="text-ink-soft">·</span> Best streak {stats.best}{' '}
-            <span className="text-ink-soft">·</span> Wins {stats.wins}
+          <p className="num flex flex-wrap items-center justify-center gap-x-2 text-center font-display text-lg">
+            <span className="inline-flex items-center gap-1.5" aria-label={`Streak ${stats.streak}`}>
+              <Flame /> {stats.streak}
+            </span>
+            <span className="text-muted">·</span> Best streak {stats.best} <span className="text-muted">·</span> Wins {stats.wins}
           </p>
-          <p className="text-center text-ink-soft">
+          <p className="text-center text-muted">
             <Countdown />
           </p>
           {serverEnabled && won && <NamePrompt onSaved={() => setBoardKey((k) => k + 1)} />}
@@ -120,11 +126,11 @@ export function Result({ attempt, puzzle, stats, onPractice, onHome }: Props) {
         </>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
-        <button className="min-h-12 rounded-card bg-ink px-4 font-display text-xl font-extrabold text-paper" onClick={onPractice}>
+      <div className="grid grid-cols-2 gap-3">
+        <button className="btn px-3" onClick={onPractice}>
           Practice
         </button>
-        <button className="min-h-12 rounded-card border-2 border-ink px-4 font-display text-xl font-semibold" onClick={onHome}>
+        <button className="btn btn-2 px-3" onClick={onHome}>
           Home
         </button>
       </div>

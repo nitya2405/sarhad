@@ -55,7 +55,7 @@ describe('App (smoke)', () => {
 
     for (const id of puzzle.shortest.slice(1, -1)) type(regionName(id));
     await act(async () => {});
-    expect(await screen.findByText('Linked!', undefined, { timeout: 3000 })).toBeTruthy(); // after the win pulse
+    expect(await screen.findByText('Connected!', undefined, { timeout: 3000 })).toBeTruthy(); // after the win pulse
     expect(screen.getByText('You found a shortest route!')).toBeTruthy();
 
     // F2: reopening lands on Done today, not a second attempt

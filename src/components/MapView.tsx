@@ -157,7 +157,7 @@ export function MapView({
   if (map === undefined) return <div className={className} aria-hidden="true" />;
   if (map === null || !map.regions || !vb) {
     return (
-      <p className={`${className} flex items-center justify-center p-4 text-center text-sm text-ink-soft`}>
+      <p className={`${className} flex items-center justify-center p-4 text-center text-sm text-muted`}>
         Map unavailable. Your guesses below are all you need.
       </p>
     );
@@ -167,8 +167,8 @@ export function MapView({
   const pt = (id: RegionId) => map.regions[id]?.label;
   const state = (id: RegionId): 'end' | 'on' | 'off' | 'land' =>
     id === start || id === end ? 'end' : connected.has(id) ? 'on' : guessed.has(id) ? 'off' : 'land';
-  const FILL = { end: 'var(--color-marigold)', on: 'var(--color-marigold)', off: 'var(--color-slate)', land: 'var(--color-land)' };
-  const STROKE = { end: 'var(--color-marigold-deep)', on: 'var(--color-marigold-deep)', off: 'var(--color-ink-line)', land: 'var(--color-border)' };
+  const FILL = { end: 'var(--color-red)', on: 'var(--color-red)', off: 'var(--color-slate)', land: 'var(--color-land)' };
+  const STROKE = { end: 'var(--color-ink)', on: 'var(--color-ink)', off: 'var(--color-muted)', land: 'var(--color-border)' };
 
   // Labels: endpoints always, the latest guess, and a tapped region; collisions hide the lower priority.
   const fs = 12 * u;
@@ -216,7 +216,7 @@ export function MapView({
       <defs>
         <pattern id="hatch" patternUnits="userSpaceOnUse" width={6 * u} height={6 * u} patternTransform="rotate(45)">
           <rect width={6 * u} height={6 * u} fill="var(--color-slate)" />
-          <line x1="0" y1="0" x2="0" y2={6 * u} stroke="var(--color-paper)" strokeOpacity={0.55} strokeWidth={2 * u} />
+          <line x1="0" y1="0" x2="0" y2={6 * u} stroke="#fff" strokeOpacity={0.55} strokeWidth={2 * u} />
         </pattern>
       </defs>
 
@@ -278,8 +278,8 @@ export function MapView({
                 </mask>
               )}
               <g mask={maskId ? `url(#${maskId})` : undefined}>
-                <line x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="var(--color-paper)" strokeWidth={sw + 2 * u} strokeDasharray={dash} />
-                <line x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="var(--color-marigold)" strokeWidth={sw} strokeDasharray={dash} />
+                <line x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="#fff" strokeWidth={sw + 4 * u} strokeDasharray={dash} />
+                <line x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="var(--color-ink)" strokeWidth={sw} strokeDasharray={dash} />
               </g>
             </g>
           );
@@ -302,23 +302,23 @@ export function MapView({
             </mask>
           )}
           <g mask={revealRoute && !reduced ? 'url(#m-route)' : undefined}>
-            <polyline points={routePts.map((p) => p.join(',')).join(' ')} stroke="var(--color-paper)" strokeWidth={sw + 2 * u} strokeDasharray={dash} />
+            <polyline points={routePts.map((p) => p.join(',')).join(' ')} stroke="#fff" strokeWidth={sw + 4 * u} strokeDasharray={dash} />
             <polyline
               points={routePts.map((p) => p.join(',')).join(' ')}
-              stroke={revealRoute ? 'var(--color-marigold-deep)' : 'var(--color-marigold)'}
+              stroke={revealRoute ? 'var(--color-red-lip)' : 'var(--color-ink)'}
               strokeWidth={sw}
               strokeDasharray={dash}
             />
           </g>
           {celebrate && (
-            <polyline points={routePts.map((p) => p.join(',')).join(' ')} stroke="var(--color-ink)" strokeWidth={4 * u} pathLength={1} className="route-pulse" />
+            <polyline points={routePts.map((p) => p.join(',')).join(' ')} stroke="#fff" strokeWidth={4 * u} pathLength={1} className="route-pulse" />
           )}
         </g>
       )}
       {celebrate && start && end && (
         <g fill="none" pointerEvents="none">
           {[start, end].map((id) => (
-            <path key={`glow-${id}`} d={map.regions[id].d} stroke="var(--color-marigold-deep)" vectorEffect="non-scaling-stroke" className="glow" />
+            <path key={`glow-${id}`} d={map.regions[id].d} stroke="var(--color-ink)" vectorEffect="non-scaling-stroke" className="glow" />
           ))}
         </g>
       )}
@@ -363,13 +363,31 @@ export function MapView({
                   textAnchor={c.anchor}
                   dominantBaseline="central"
                   strokeWidth={4 * u}
-                  className="map-label"
+                  className={`map-label${!c.leader && (state(c.id) === 'end' || state(c.id) === 'on') ? ' on-red' : ''}`}
                 >
                   {mapLabel(c.id)}
                 </text>
               </g>
             ))}
         </g>
+      )}
+
+      {/* "+1" bounce beside a newly connected region (not drawn with reduced motion: fresh stays null) */}
+      {fresh?.pop && pt(fresh.pop) && (
+        <text
+          key={`plus-${nonce}`}
+          x={pt(fresh.pop)![0] + 14 * u}
+          y={pt(fresh.pop)![1] - 10 * u}
+          fontSize={15 * u}
+          strokeWidth={4 * u}
+          textAnchor="start"
+          dominantBaseline="central"
+          className="plus-one"
+          style={{ ['--rise' as string]: `${-12 * u}px` }}
+          aria-hidden="true"
+        >
+          +1
+        </text>
       )}
     </svg>
   );

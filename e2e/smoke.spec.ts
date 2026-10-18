@@ -9,6 +9,22 @@ function watchErrors(page: Page): string[] {
   return errors;
 }
 
+/**
+ * Opens straight into a practice game with a fixed pair. A random Practice pair can make a test depend on
+ * which states are endpoints (e.g. "Arun" when Arunachal Pradesh is the start), so input tests pin it.
+ */
+async function playFixedPractice(page: Page, puzzleId = 'RJ-WB') {
+  await page.addInitScript((id) => {
+    const player = {
+      playerId: 'fixed', streak: 0, best: 0, totalPoints: 0, prunedWins: 0,
+      attempts: [{ attemptId: 'fixed', mode: 'practice', puzzleId: id, startedAt: Date.now(), guesses: [], status: 'playing' }],
+    };
+    localStorage.setItem('sarhad:v1', JSON.stringify({ schemaVersion: 1, player }));
+  }, puzzleId);
+  await page.goto('/');
+  await expect(page.getByRole('group', { name: 'Guess 1 of 20' })).toBeVisible();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('sarhad:coach', '1'));
 });
@@ -50,9 +66,7 @@ test('switching screens survives StrictMode effect cleanup (Practice â†’ Start â
 });
 
 test('typing a partial name reveals nothing; a near-complete name shows one chip', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Practice', exact: true }).click();
-  await page.getByRole('button', { name: 'Start' }).click();
+  await playFixedPractice(page);
   const input = page.getByLabel('Name a state or union territory');
   await input.fill('Arun');
   await expect(page.getByRole('button', { name: /Arunachal/ })).toHaveCount(0);
@@ -61,9 +75,7 @@ test('typing a partial name reveals nothing; a near-complete name shows one chip
 });
 
 test('a partial name + Enter asks for the full name, spending no guess', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Practice', exact: true }).click();
-  await page.getByRole('button', { name: 'Start' }).click();
+  await playFixedPractice(page);
   const input = page.getByLabel('Name a state or union territory');
   await input.fill('Arun');
   await input.press('Enter');
@@ -85,5 +97,5 @@ test('a tap skips the win celebration', async ({ page }) => {
   await input.fill('Bihar');
   await input.press('Enter');
   await page.mouse.click(180, 300);
-  await expect(page.getByRole('heading', { name: 'Linked!' })).toBeVisible({ timeout: 500 });
+  await expect(page.getByRole('heading', { name: 'Connected!' })).toBeVisible({ timeout: 500 });
 });

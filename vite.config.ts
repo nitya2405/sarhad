@@ -64,16 +64,21 @@ export default defineConfig(({ mode }) => {
       noFutureDates(!bundleSchedule),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg'],
+        includeAssets: ['icon.svg', 'favicon-32.png', 'apple-touch-icon.png'],
         manifest: {
           name: 'Sarhad',
           short_name: 'Sarhad',
           description: 'Connect two Indian states by naming the regions between them.',
-          theme_color: '#f5f6fa',
-          background_color: '#f5f6fa',
+          theme_color: '#ffffff',
+          background_color: '#ffffff',
           display: 'standalone',
           start_url: '/',
-          icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+          icons: [
+            { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+            { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,json,webmanifest}'],

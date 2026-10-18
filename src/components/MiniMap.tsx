@@ -13,8 +13,8 @@ export function MiniMap({ lit = [], className = '' }: { lit?: RegionId[]; classN
           <path
             key={id}
             d={d}
-            fill={on ? 'var(--color-marigold)' : 'var(--color-land)'}
-            stroke={on ? 'var(--color-marigold-deep)' : 'var(--color-border)'}
+            fill={on ? 'var(--color-red)' : 'var(--color-land)'}
+            stroke={on ? 'var(--color-ink)' : 'var(--color-border)'}
             strokeWidth={on ? 1.5 : 1}
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"

@@ -1,23 +1,30 @@
 @import "tailwindcss";
-/* Baloo 2, Latin subset only (Devanagari falls back to the phone's system font). font-display: swap. */
-@import "@fontsource/baloo-2/latin-600.css";
-@import "@fontsource/baloo-2/latin-800.css";
+/* Lilita One, Latin subset, one weight (400). font-display: swap. Devanagari falls back to the system font. */
+@import "@fontsource/lilita-one/latin-400.css";
+/* Silkscreen Bold, subset to space ! 0-9 A-Z (1 KB; `npm run font:wordmark`). Wordmark and the two result stickers only. */
+@font-face {
+  font-family: "Silkscreen";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./assets/fonts/silkscreen-700-caps.woff2") format("woff2");
+  unicode-range: U+0020-0021, U+0030-0039, U+0041-005A;
+}
 
-/* Tokens: docs/DESIGN-SYSTEM.md. Tailwind utilities: bg-ink, text-ink-soft, bg-marigold, … */
+/* Tokens: docs/DESIGN-SYSTEM.md. Tailwind utilities: bg-red, text-muted, border-ink, … */
 @theme {
-  --color-ink: #22306b;
-  --color-ink-soft: #57628f; /* secondary text, 5.48:1 on paper */
-  --color-ink-line: #767fa4; /* input/chip outlines, 3.64:1 on paper */
-  --color-paper: #f5f6fa;
-  --color-land: #e3e6f0;
-  --color-border: #aab2cc;
-  --color-marigold: #f4a10c;
-  --color-marigold-deep: #c46a00;
-  --color-slate: #8e97ae;
-  --color-kumkum: #b3261e;
-  --font-display: "Baloo 2", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-ink: #1e1b2e; /* outlines + text, 16.78:1 on white */
+  --color-muted: #5b5870; /* secondary text, 6.83:1 on white */
+  --color-red: #dc2626; /* button face, endpoints, connected; white on red 4.83:1 */
+  --color-red-hi: #f25a4a; /* button highlight band */
+  --color-red-lip: #991b1b; /* button lip / shade */
+  --color-land: #eef0f4; /* unguessed region */
+  --color-border: #c7cbd6; /* region borders, secondary-button lip */
+  --color-slate: #7d8496; /* guessed, not yet connected (+ hatch); 3.28:1 vs land */
+  --color-mist: #f1f2f5; /* error pill */
+  --font-display: "Lilita One", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", sans-serif;
-  --radius-card: 14px;
+  --radius-card: 18px;
 }
 
 :root {
@@ -28,20 +35,193 @@
 
 body {
   margin: 0;
-  background: var(--color-paper);
+  background: #fff;
   color: var(--color-ink);
   font-family: var(--font-sans);
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
-:focus-visible {
-  outline: 3px solid var(--color-marigold-deep);
-  outline-offset: 2px;
+/* Lilita One has one weight: never fake a bold */
+.font-display {
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+/* in the base layer so a component can opt out with focus-visible:outline-none */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-red);
+    outline-offset: 3px;
+  }
 }
 
 .num {
   font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+/* ---------- chunky pieces ---------- */
+/* Panel: white, 3px ink outline, hard offset shadow (no blur). */
+.panel {
+  background: #fff;
+  border: 3px solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 0 var(--color-ink);
+}
+
+/* Arcade pill button: ink outline, red face, inset highlight band, 6px lip. */
+.btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  min-height: 52px;
+  margin-bottom: 9px; /* room for the lip + outline below */
+  padding: 0 1.5rem;
+  border: 3px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-red);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: 1.375rem;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-shadow:
+    2px 0 0 var(--color-ink), -2px 0 0 var(--color-ink), 0 2px 0 var(--color-ink), 0 -2px 0 var(--color-ink),
+    1.4px 1.4px 0 var(--color-ink), -1.4px 1.4px 0 var(--color-ink), 1.4px -1.4px 0 var(--color-ink), -1.4px -1.4px 0 var(--color-ink);
+  box-shadow: 0 6px 0 var(--color-red-lip), 0 6px 0 3px var(--color-ink);
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+  cursor: pointer;
+  user-select: none;
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 3px 12px auto;
+  height: 40%;
+  border-radius: 999px;
+  background: var(--color-red-hi);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--color-red-lip), 0 2px 0 3px var(--color-ink);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn-2 {
+  background: #fff;
+  color: var(--color-ink);
+  text-shadow: none;
+  box-shadow: 0 6px 0 var(--color-border), 0 6px 0 3px var(--color-ink);
+}
+.btn-2::before {
+  display: none;
+}
+.btn-2:active:not(:disabled) {
+  box-shadow: 0 2px 0 var(--color-border), 0 2px 0 3px var(--color-ink);
+}
+/* round icon button: same build, 48px */
+.btn-icon {
+  min-height: 48px;
+  min-width: 48px;
+  width: 48px;
+  padding: 0;
+  margin-bottom: 7px;
+  font-size: 1.375rem;
+  box-shadow: 0 4px 0 var(--color-border), 0 4px 0 3px var(--color-ink);
+}
+.btn-icon::before {
+  inset: 3px 9px auto;
+  height: 34%;
+}
+.btn-icon:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--color-border), 0 1px 0 3px var(--color-ink);
+}
+.btn-icon.btn-red {
+  box-shadow: 0 4px 0 var(--color-red-lip), 0 4px 0 3px var(--color-ink);
+}
+.btn-icon.btn-red:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--color-red-lip), 0 1px 0 3px var(--color-ink);
+}
+
+/* Error pill: not red (red is your route). Ink text on light grey with a ✗. */
+.err-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-mist);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+/* the ✗ is decoration: alt text "" keeps it out of the accessible name and textContent */
+.err-pill::before {
+  content: "✗";
+  content: "✗" / "";
+  font-family: var(--font-display);
+  font-size: 1.05em;
+  line-height: 1;
+}
+.err-pill:empty {
+  display: none;
+}
+
+/* Pixel sticker: the wordmark and the CONNECTED! / GAME OVER badges. Level, embossed, sized in em. */
+.sticker {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  padding: 0.06em 0.42em 0.1em 0.47em; /* height ≈ the streak/points row; right side smaller: letter-spacing trails */
+  border: 3px solid var(--color-ink);
+  border-radius: 0.28em;
+  background: var(--color-red);
+  color: #fff;
+  font-family: "Silkscreen", var(--font-display);
+  font-weight: 700;
+  font-synthesis: none;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* raised pixel letters: light seam, red-lip side, ink base. No blur. */
+  text-shadow: 0 1px 0 #ffd9d4, 0 2px 0 var(--color-red-lip), 0 3px 0 var(--color-ink);
+  /* inner bevel, then the lip + ink outline underneath */
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.35),
+    inset 0 -3px 0 rgb(0 0 0 / 0.18),
+    0 0.14em 0 var(--color-red-lip),
+    0 0.14em 0 3px var(--color-ink);
+}
+/* soft highlight over the top 30%, below the bevel line, fading out over its last 2px */
+.sticker::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px 0 auto;
+  height: 30%;
+  border-radius: calc(0.28em - 3px) calc(0.28em - 3px) 0 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-red-hi) 70%, var(--color-red)) calc(100% - 2px),
+    color-mix(in srgb, var(--color-red-hi) 0%, var(--color-red))
+  );
+}
+}
+
+.pixel {
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
 }
 
 /* ---------- map ---------- */
@@ -69,9 +249,45 @@ body {
   font-family: var(--font-sans);
   font-weight: 700;
   paint-order: stroke;
-  stroke: var(--color-paper);
+  stroke: #fff;
   stroke-linejoin: round;
   pointer-events: none;
+}
+.map-label.on-red {
+  fill: #fff;
+  stroke: var(--color-ink);
+}
+
+/* "+1" bounce next to a newly connected region */
+.plus-one {
+  fill: var(--color-ink);
+  font-family: var(--font-display);
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-linejoin: round;
+  pointer-events: none;
+  opacity: 0;
+  animation: plus-one 700ms var(--ease-out) forwards;
+}
+@keyframes plus-one {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(var(--rise));
+  }
+  45% {
+    transform: translateY(calc(var(--rise) * 0.7));
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--rise) * 1.1));
+  }
 }
 
 /* the stitch: draw-in uses a mask line from dashoffset 1 → 0 */
@@ -150,7 +366,7 @@ body {
 }
 @keyframes chip-pulse {
   from {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-marigold-deep) 45%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-red) 45%, transparent);
   }
   to {
     box-shadow: 0 0 0 0 transparent;
@@ -177,8 +393,12 @@ body {
     stroke-dashoffset: 0;
   }
   .route-pulse,
-  .glow {
+  .glow,
+  .plus-one {
     display: none;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
   }
 }
 

@@ -103,6 +103,13 @@ npm run db:schedule    # regenerates the schedule seed migration from src/data/d
 
 The border graph `data/adjacency.v1.json` is curated by hand. The map is only a cross-check (see `ADJACENCY_NOTES.md`).
 
+Generated assets (commit the output):
+
+```sh
+npm run icons          # app icon + favicon + PWA PNGs (public/), rendered with Playwright's Chromium
+npm run font:wordmark  # Silkscreen subset for the wordmark (needs Python fontTools)
+```
+
 ## Deploy
 
 - **Supabase:**
@@ -118,9 +125,9 @@ The border graph `data/adjacency.v1.json` is curated by hand. The map is only a 
 
 ## Data sources and licences
 
-- **Code:** MIT, © 2026 Nitya Shukla — see [`LICENSE`](LICENSE). The licences below cover the data and font, which are not MIT.
+- **Code:** MIT, © 2026 Nitya Shukla — see [`LICENSE`](LICENSE). The licences below cover the data and fonts, which are not MIT.
 - **Map:** © SimpleMaps (simplemaps.com), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Ids were remapped, and the geometry was simplified and projected. Credit is shown in the app footer.
-- **Font:** Baloo 2 by Ek Type, SIL Open Font License 1.1, self-hosted via `@fontsource/baloo-2`.
+- **Fonts:** Lilita One by Juan Montoreano and Silkscreen by The Silkscreen Project Authors (wordmark, subset to caps), both SIL Open Font License 1.1, self-hosted via `@fontsource`.
 - **Border graph, aliases and puzzles:** written for this project.
 
 ## Known limits

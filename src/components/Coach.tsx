@@ -25,9 +25,9 @@ const FRAMES = [
     text: 'Two states. Join them by land.',
     icon: (
       <svg {...svg}>
-        <circle cx="16" cy="20" r="9" fill="var(--color-marigold)" stroke="var(--color-marigold-deep)" strokeWidth="2" />
-        <circle cx="56" cy="52" r="9" fill="var(--color-marigold)" stroke="var(--color-marigold-deep)" strokeWidth="2" />
-        <path d="M23 25 L49 47" stroke="var(--color-marigold-deep)" strokeWidth="3" strokeDasharray="6 5" />
+        <circle cx="16" cy="20" r="9" fill="var(--color-red)" stroke="var(--color-ink)" strokeWidth="3" />
+        <circle cx="56" cy="52" r="9" fill="var(--color-red)" stroke="var(--color-ink)" strokeWidth="3" />
+        <path d="M23 25 L49 47" stroke="var(--color-ink)" strokeWidth="3" strokeDasharray="6 5" />
       </svg>
     ),
   },
@@ -37,7 +37,7 @@ const FRAMES = [
       <svg {...svg}>
         <rect x="6" y="24" width="60" height="24" rx="8" stroke="var(--color-ink)" strokeWidth="3" />
         <path d="M16 36h22" stroke="var(--color-ink)" strokeWidth="3" />
-        <path d="M46 30v12" stroke="var(--color-marigold-deep)" strokeWidth="3" />
+        <path d="M46 30v12" stroke="var(--color-red)" strokeWidth="3" />
       </svg>
     ),
   },
@@ -47,7 +47,7 @@ const FRAMES = [
       <svg {...svg}>
         <circle cx="36" cy="40" r="22" stroke="var(--color-ink)" strokeWidth="3" />
         <path d="M36 40V27M30 12h12" stroke="var(--color-ink)" strokeWidth="3" />
-        <path d="M36 40l9 6" stroke="var(--color-marigold-deep)" strokeWidth="3" />
+        <path d="M36 40l9 6" stroke="var(--color-red)" strokeWidth="3" />
       </svg>
     ),
   },
@@ -67,19 +67,19 @@ export function Coach({ onClose }: { onClose: () => void }) {
       <button
         autoFocus
         onClick={next}
-        className="fade-in flex w-full max-w-xs flex-col items-center gap-5 rounded-card bg-paper px-6 py-8 text-center"
+        className="panel fade-in flex w-full max-w-xs flex-col items-center gap-5 px-6 py-8 text-center"
         aria-label={`${FRAMES[i].text} ${last ? 'Tap to start.' : 'Tap for next.'}`}
       >
         <span key={i} className="fade-in">
           {FRAMES[i].icon}
         </span>
-        <span className="font-display text-2xl font-extrabold leading-tight">{FRAMES[i].text}</span>
+        <span className="font-display text-2xl leading-tight">{FRAMES[i].text}</span>
         <span className="flex gap-2" aria-hidden="true">
           {FRAMES.map((_, j) => (
-            <span key={j} className={`h-2 w-2 rounded-full ${j === i ? 'bg-ink' : 'bg-border'}`} />
+            <span key={j} className={`h-2.5 w-2.5 ${j === i ? 'bg-red outline-2 outline-ink' : 'bg-border'}`} />
           ))}
         </span>
-        <span className="text-sm text-ink-soft">{last ? 'Tap to start' : 'Tap'}</span>
+        <span className="font-display text-sm uppercase tracking-wide text-muted">{last ? 'Tap to start' : 'Tap'}</span>
       </button>
     </div>
   );

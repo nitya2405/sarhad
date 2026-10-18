@@ -27,19 +27,19 @@ export function Leaderboard({ date, refreshKey }: { date: string; refreshKey: un
   }, [date, refreshKey]);
 
   return (
-    <section aria-labelledby="board" className="rounded-card bg-white p-4">
-      <h2 id="board" className="font-display text-lg font-semibold">
+    <section aria-labelledby="board" className="panel p-4">
+      <h2 id="board" className="font-display text-lg uppercase tracking-wide">
         Today
       </h2>
-      {board === undefined && <p className="text-sm text-ink-soft">Loading…</p>}
-      {board === null && <p className="text-sm text-ink-soft">Leaderboard offline.</p>}
-      {board && board.rows.length === 0 && <p className="text-sm text-ink-soft">No winners yet.</p>}
+      {board === undefined && <p className="text-sm text-muted">Loading…</p>}
+      {board === null && <p className="text-sm text-muted">Leaderboard offline.</p>}
+      {board && board.rows.length === 0 && <p className="text-sm text-muted">No winners yet.</p>}
       {board && board.rows.length > 0 && (
         <ol className="mt-1 flex flex-col gap-1 text-sm">
           {board.rows.map((r) => (
             <li
               key={`${r.rank}-${r.displayName}`}
-              className={`flex justify-between gap-3 rounded-full px-2 py-0.5 ${r.isMe ? 'bg-marigold font-semibold' : ''}`}
+              className={`flex justify-between gap-3 rounded-full px-2 py-0.5 ${r.isMe ? 'bg-red font-semibold text-white' : ''}`}
             >
               <span>
                 {r.rank}. {r.displayName}
@@ -83,7 +83,7 @@ export function NamePrompt({ onSaved }: { onSaved: () => void }) {
   }
 
   return (
-    <form onSubmit={save} className="flex flex-col gap-2 rounded-card border-2 border-marigold-deep bg-white p-3">
+    <form onSubmit={save} className="panel flex flex-col gap-2 p-3">
       <label htmlFor="display-name" className="font-semibold">
         Your name on the board
       </label>
@@ -94,12 +94,14 @@ export function NamePrompt({ onSaved }: { onSaved: () => void }) {
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
           autoComplete="nickname"
-          className="min-h-12 min-w-0 flex-1 rounded-card border-2 border-ink-line bg-white px-3"
+          className="min-h-[52px] min-w-0 flex-1 rounded-card border-[3px] border-ink bg-white px-3 shadow-[0_3px_0_var(--color-border)] focus:outline-none focus:shadow-[0_4px_0_var(--color-ink)]"
         />
-        <button className="min-h-12 rounded-card bg-ink px-4 font-display font-extrabold text-paper">Save</button>
+        <button className="btn mb-0 px-4 text-lg">Save</button>
       </div>
-      <p role="status" className="text-sm font-semibold text-kumkum">
-        {error}
+      <p>
+        <span role="status" className="err-pill text-sm">
+          {error}
+        </span>
       </p>
     </form>
   );
@@ -107,7 +109,7 @@ export function NamePrompt({ onSaved }: { onSaved: () => void }) {
 
 export function Footer() {
   return (
-    <footer className="mt-auto pt-4 text-center text-xs text-ink-soft">
+    <footer className="mt-auto pt-4 text-center text-xs text-muted">
       Map data ©{' '}
       <a className="underline" href="https://simplemaps.com/gis/country/in" target="_blank" rel="noreferrer">
         SimpleMaps

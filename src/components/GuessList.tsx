@@ -1,5 +1,6 @@
 import { GUESS_CAP, type RegionId } from '@engine/index.ts';
 import { regionName } from '../lib/data.ts';
+import { PixelBar } from './pixel.tsx';
 
 /**
  * Guess chips, newest first. ● connected / ○ not yet connected — colour is never the only signal.
@@ -15,8 +16,8 @@ export function GuessList({ guesses, linked, pulse }: { guesses: RegionId[]; lin
         return (
           <li
             key={pulsing ? `${id}-${pulse!.n}` : id}
-            className={`inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-sm transition-colors duration-200 ${
-              on ? 'bg-marigold font-semibold text-ink' : 'border border-ink-line bg-paper text-ink'
+            className={`inline-flex min-h-8 items-center gap-1 rounded-full border-2 border-ink px-3 text-sm font-semibold transition-colors duration-200 ${
+              on ? 'bg-red text-white' : 'bg-white text-ink'
             } ${pulsing ? 'chip-pulse' : ''}`}
           >
             <span aria-hidden="true">{on ? '●' : '○'}</span>
@@ -29,19 +30,21 @@ export function GuessList({ guesses, linked, pulse }: { guesses: RegionId[]; lin
   );
 }
 
-/** Guesses left as a thin 20-segment bar; the text equivalent is for screen readers and tests. */
+/** Guesses left as a pixel bar draining from 20; the text equivalent is for screen readers and tests. */
 export function GuessBar({ used }: { used: number }) {
   const n = Math.min(used + 1, GUESS_CAP);
+  const left = Math.max(0, GUESS_CAP - used);
   return (
-    <div className="flex items-center" role="group" aria-label={`Guess ${n} of ${GUESS_CAP}`}>
+    <div className="mt-1 flex items-center gap-2" role="group" aria-label={`Guess ${n} of ${GUESS_CAP}`}>
       <span className="sr-only">
         Guess {n} of {GUESS_CAP}
       </span>
-      <div className="flex h-1.5 flex-1 gap-[2px]" aria-hidden="true">
-        {Array.from({ length: GUESS_CAP }, (_, i) => (
-          <span key={i} className={`flex-1 rounded-full ${i < used ? 'bg-ink' : 'bg-land'} ${i < used ? '' : 'outline outline-1 -outline-offset-1 outline-border'}`} />
-        ))}
+      <div className="min-w-0 flex-1" aria-hidden="true">
+        <PixelBar left={left} />
       </div>
+      <span className="num w-6 text-right font-display text-base leading-none" aria-hidden="true">
+        {left}
+      </span>
     </div>
   );
 }
