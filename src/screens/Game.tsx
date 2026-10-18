@@ -100,7 +100,7 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
     } else if (linkedSet(puzzle.start, puzzle.end, next, adjacency).has(id)) buzz(PATTERN.connected);
     else {
       buzz(PATTERN.accepted);
-      say('Galat mod!'); // not joined to either end (yet)
+      say('Abhi juda nahi'); // not joined to either end yet: never "wrong", it may join later
     }
     onGuess(id, now());
   }

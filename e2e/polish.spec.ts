@@ -21,15 +21,15 @@ async function guess(page: Page, text: string) {
   await input.press('Enter');
 }
 
-test('toasts: "Galat mod!" for an unconnected guess, "Raasta clear!" on the win; "Ekdum seedha!" for a shortest route', async ({ page }) => {
+test('toasts: "Abhi juda nahi" for a guess not joined yet, "Raasta clear!" on the win; "Ekdum seedha!" for a shortest route', async ({ page }) => {
   await seedPractice(page);
   await page.goto('/');
   await guess(page, 'Punjab');
-  await expect(page.getByText('Galat mod!')).toBeVisible();
-  await expect(page.getByText('Galat mod!')).toHaveCount(0, { timeout: 3000 }); // goes away by itself
+  await expect(page.getByText('Abhi juda nahi')).toBeVisible();
+  await expect(page.getByText('Abhi juda nahi')).toHaveCount(0, { timeout: 3000 }); // goes away by itself
   await guess(page, 'Maharashtra'); // joined to Gujarat: no toast
   await page.waitForTimeout(150);
-  await expect(page.getByText('Galat mod!')).toHaveCount(0);
+  await expect(page.getByText('Abhi juda nahi')).toHaveCount(0);
   await guess(page, 'Karnataka');
   await expect(page.getByText('Raasta clear!')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Connected!' })).toBeVisible();

@@ -581,7 +581,7 @@ body[data-screen="home"] #root {
   }
 }
 
-/* ---------- game toast: "Raasta clear!", "Galat mod!" ---------- */
+/* ---------- game toast: "Raasta clear!", "Abhi juda nahi" ---------- */
 .toast {
   animation: toast 1300ms var(--ease-out) forwards;
 }
