@@ -106,12 +106,16 @@ export function Result({ attempt, puzzle, stats, onPractice, onHome, onBoard }: 
                 <dt className="mt-1 text-xs text-muted">Guesses</dt>
               </div>
               <div className="panel px-1 py-2">
-                <dd className={big} aria-label={daily ? undefined : 'unscored'}>
-                  {daily ? points : '—'}
-                </dd>
-                <dt className="mt-1 text-xs text-muted">{daily ? 'Points' : 'Unscored'}</dt>
+                {daily ? (
+                  <dd className={big}>{points}</dd>
+                ) : (
+                  // practice: how the route compares with the shortest one
+                  <dd className="num font-display text-xl leading-none">{foundShortest ? 'Shortest ✓' : mine ? `+${mine.length - puzzle.shortest.length} extra` : '—'}</dd>
+                )}
+                <dt className="mt-1 text-xs text-muted">{daily ? 'Points' : 'Route'}</dt>
               </div>
             </dl>
+            {!daily && <p className="-mt-1 text-xs text-muted">Practice doesn't earn points.</p>}
 
             <p className="font-display text-lg">
               {foundShortest ? (

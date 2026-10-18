@@ -89,16 +89,16 @@ If the network fails, the local result stays and retries with backoff.
 
 ## Tests
 
-Once per machine, install the browser Playwright uses. `test:e2e` and `npm run icons` need it:
+Once per machine, install the browsers Playwright uses: Chromium (`test:e2e`, `npm run icons`) and WebKit (`e2e/iphone.spec.ts`, iPhone 13 profile):
 
 ```sh
-npx playwright install chromium
+npx playwright install chromium webkit
 ```
 
 ```sh
 npm run typecheck
 npm run test:unit          # Vitest: engine, model, storage, labels, App (offline + server, server mocked)
-npm run test:e2e           # Playwright (Chromium, offline build on :4173); screenshots → test-results/screens/
+npm run test:e2e           # Playwright (Chromium + WebKit iPhone, offline build on :4173); screenshots → test-results/screens/
 npx vitest run -c supabase/scripts/vitest.finish-daily.config.ts   # Edge Function handler
 npx supabase test db --local                                       # pgTAP (needs `supabase start`; `supabase migration up --local` after new migrations)
 npm test                   # unit + e2e

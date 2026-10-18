@@ -52,7 +52,7 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
   const practicePrimary = !!done && !serverEnabled;
 
   return (
-    <div className="home-bg mx-auto flex min-h-[var(--app-h,100dvh)] flex-col px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="home-bg mx-auto flex h-full flex-col overflow-hidden px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <header className="flex items-center justify-between gap-3">
         {/* no vibration API on iPhone/iOS: no toggle there */}
         {hapticsSupported() && (

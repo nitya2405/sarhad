@@ -26,7 +26,8 @@ export function Board({ player, stats, today, onHome }: Props) {
   const [naming, setNaming] = useState(false);
   const tile = 'panel px-1 py-2.5 text-center';
   return (
-    <div className="mx-auto flex min-h-[var(--app-h,100dvh)] flex-col gap-4 p-4">
+    // the only scrolling screen: it scrolls inside its own container, never the page
+    <div className="mx-auto flex h-full flex-col gap-4 overflow-y-auto overscroll-contain p-4" data-scroll="board">
       <header className="flex items-center gap-3">
         <BackButton onClick={onHome} />
         <h1 className="font-display text-3xl uppercase tracking-wide">{serverEnabled ? 'Leaderboard' : 'My stats'}</h1>

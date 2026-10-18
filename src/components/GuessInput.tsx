@@ -147,10 +147,12 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
             setText(e.target.value);
             setMessage('');
           }}
-          autoFocus
+          // no autoFocus: the keyboard opens only on a tap. These attributes also keep iOS from
+          // offering contact AutoFill above the keyboard.
+          name="sarhad-guess"
           autoComplete="off"
           autoCorrect="off"
-          autoCapitalize="off"
+          autoCapitalize="words"
           spellCheck={false}
           enterKeyHint="go"
           maxLength={80}

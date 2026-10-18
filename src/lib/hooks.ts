@@ -50,22 +50,49 @@ export function useReducedMotion(): boolean {
 }
 
 /**
- * Keeps --app-h equal to the visible viewport height, so the input stays pinned just above
- * the on-screen keyboard (iOS Safari does not resize the layout viewport).
+ * --app-h = the tallest window.innerHeight seen at this width (starts over on rotation). Never the
+ * visual viewport: the keyboard must not shrink the layout (the game slides up instead, useKeyboardInset).
  */
 export function useAppHeight(): void {
   useEffect(() => {
-    const vv = window.visualViewport;
+    let width = window.innerWidth;
+    let tallest = 0;
     const set = () => {
-      document.documentElement.style.setProperty('--app-h', `${vv ? vv.height : window.innerHeight}px`);
-      if (vv && vv.offsetTop > 0) window.scrollTo(0, 0);
+      if (window.innerWidth !== width) {
+        width = window.innerWidth;
+        tallest = 0;
+      }
+      tallest = Math.max(tallest, window.innerHeight);
+      document.documentElement.style.setProperty('--app-h', `${tallest}px`);
     };
     set();
-    vv?.addEventListener('resize', set);
     window.addEventListener('resize', set);
+    return () => window.removeEventListener('resize', set);
+  }, []);
+}
+
+/**
+ * How far the on-screen keyboard covers the app column: the column's bottom minus the bottom of the
+ * visual viewport. 0 when closed (small toolbar changes are ignored).
+ */
+export function useKeyboardInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const on = () => {
+      const bottom = document.getElementById('root')?.getBoundingClientRect().bottom ?? window.innerHeight;
+      const covered = Math.round(bottom - (vv.offsetTop + vv.height));
+      setInset(covered > 80 ? covered : 0);
+      if (window.scrollY !== 0) window.scrollTo(0, 0); // iOS may scroll the page to the input
+    };
+    on();
+    vv.addEventListener('resize', on);
+    vv.addEventListener('scroll', on);
     return () => {
-      vv?.removeEventListener('resize', set);
-      window.removeEventListener('resize', set);
+      vv.removeEventListener('resize', on);
+      vv.removeEventListener('scroll', on);
     };
   }, []);
+  return inset;
 }

@@ -6,7 +6,7 @@ import { serverEnabled } from './lib/server.ts';
 import { uuid } from './lib/uuid.ts';
 import { requestPersistOnce } from './lib/persist.ts';
 import { syncName } from './lib/name.ts';
-import { activeAttempt, addGuess, createAttempt, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt } from './game/model.ts';
+import { activeAttempt, addGuess, createAttempt, findDaily, giveUp, resumeAfterPause, startDailyAttempt, stats, upsertAttempt } from './game/model.ts';
 import { loadPlayer, savePlayer, STORAGE_KEY, type LocalAttempt, type SavedPlayer } from './game/storage.ts';
 import { fetchDailyStart, openSessionWhenIdle, syncPending } from './game/sync.ts';
 
@@ -185,6 +185,7 @@ export function App() {
         firstGame={!player.attempts.some((a) => a.status !== 'playing')}
         onGuess={(id: RegionId, now) => act(attempt.attemptId, (a) => addGuess(a, id, puzzle, adjacency, now))}
         onGiveUp={(now) => act(attempt.attemptId, (a) => giveUp(a, now))}
+        onResume={(ms) => act(attempt.attemptId, (a) => resumeAfterPause(a, ms))}
         onHome={() => setView({ name: 'home' })}
         onSkip={() => setView({ name: 'result', attemptId: attempt.attemptId })}
       />,

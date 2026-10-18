@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import adjJson from '../../data/adjacency.v1.json';
 import { istDate, type Adjacency, type Puzzle } from '@engine/index.ts';
 import { loadPlayer, savePlayer, STORAGE_KEY, SCHEMA_VERSION, type SavedPlayer } from './storage.ts';
-import { activeAttempt, addGuess, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt, createAttempt, youStats } from './model.ts';
+import { activeAttempt, addGuess, findDaily, giveUp, startDailyAttempt, stats, upsertAttempt, createAttempt, youStats, resumeAfterPause } from './model.ts';
 
 const adj = adjJson as Adjacency;
 const GJ_KL: Puzzle = { id: 'GJ-KL', start: 'GJ', end: 'KL', k: 2, shortest: ['GJ', 'MH', 'KA', 'KL'] };
@@ -148,5 +148,21 @@ describe('youStats (the You panel)', () => {
   it('empty player', () => {
     const y = youStats({ playerId: 'p', streak: 0, best: 0, totalPoints: 0, prunedWins: 0, attempts: [] }, puzzleOf, adj, playable);
     expect(y).toEqual({ discovered: new Set(), shortestRoutes: 0, fastestMs: null });
+  });
+});
+
+describe('resumeAfterPause (give-up pop-up)', () => {
+  const base = { attemptId: 'x', puzzleId: 'GJ-KL', startedAt: 1_000, status: 'playing' as const, guesses: [{ id: 'MH', at: 3_000 }] };
+  it('practice: start and guess times move forward by the pause', () => {
+    expect(resumeAfterPause({ ...base, mode: 'practice' }, 5_000)).toMatchObject({ startedAt: 6_000, guesses: [{ id: 'MH', at: 8_000 }] });
+  });
+  it('daily, finished, or no pause: unchanged', () => {
+    const daily = { ...base, mode: 'daily' as const, date: '2026-10-15' };
+    expect(resumeAfterPause(daily, 5_000)).toBe(daily);
+    const done = { ...base, mode: 'practice' as const, status: 'lost' as const, finishedAt: 9_000 };
+    expect(resumeAfterPause(done, 5_000)).toBe(done);
+    const p = { ...base, mode: 'practice' as const };
+    expect(resumeAfterPause(p, 0)).toBe(p);
+    expect(resumeAfterPause(p, -3)).toBe(p);
   });
 });

@@ -33,12 +33,19 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Page lock (iOS Safari): the page never scrolls, no pull-to-refresh, no rubber band. Only the
+   Leaderboard / My stats screen and the result card scroll, inside their own containers. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 body {
   margin: 0;
   background: #f5f6fa; /* outside the app column on wide screens */
   color: var(--color-ink);
   font-family: var(--font-sans);
-  overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -62,14 +69,19 @@ body[data-screen="home"] #root {
   background: transparent;
 }
 
-/* The whole app is one phone-width column; every overlay is positioned inside it, never on the window. */
+/* The whole app is one phone-width column, fixed to the window; every overlay is positioned inside it.
+   Its height is the tallest window height seen (--app-h, useAppHeight), never the visual viewport, so
+   the on-screen keyboard never shrinks the layout. */
 #root {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  bottom: auto;
   width: 100%;
   max-width: 440px;
-  min-height: var(--app-h, 100dvh);
+  height: var(--app-h, 100%);
   margin-inline: auto;
-  overflow-x: clip;
+  overflow: hidden;
+  overscroll-behavior: none;
   background: #fff;
 }
 
@@ -498,7 +510,7 @@ body[data-screen="home"] #root {
 /* fill-mode backwards: no transform once it has run, so absolute/fixed children are unaffected */
 .screen {
   position: relative;
-  min-height: var(--app-h, 100dvh);
+  height: 100%;
   animation: screen-in 180ms var(--ease-out) backwards;
 }
 @keyframes screen-in {
@@ -625,22 +637,3 @@ body[data-screen="home"] #root {
   }
 }
 
-/* ---------- game header: one row; the pair drops to its own row when text is large ---------- */
-.game-head {
-  container-type: inline-size;
-}
-.game-head-grid {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: "back title time flag";
-  align-items: center;
-  column-gap: 0.25rem;
-}
-@container (max-width: 17rem) {
-  .game-head-grid {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "back time flag"
-      "title title title";
-  }
-}

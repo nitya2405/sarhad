@@ -70,7 +70,6 @@ export function Coach({ onClose }: { onClose: () => void }) {
     markSeen();
     onClose();
   };
-  const f = FRAMES[i];
   return (
     <div role="dialog" aria-modal="true" aria-label="How to play" className="absolute inset-0 z-50 flex items-center justify-center bg-ink/60 p-6">
       {/* focus lands on the card (not the Next button), so no focus ring shows until the keyboard is used */}
@@ -78,13 +77,23 @@ export function Coach({ onClose }: { onClose: () => void }) {
         <button className="absolute top-2 right-2 min-h-11 px-3 font-display text-base uppercase tracking-wide text-muted" onClick={close}>
           Skip
         </button>
-        <span key={i} className="fade-in">
-          {f.icon}
-        </span>
-        <p key={`t${i}`} className="fade-in flex flex-col gap-1" aria-live="polite">
-          <span className="font-display text-3xl leading-tight text-balance">{f.title}</span>
-          <span className="font-display text-xl leading-tight text-muted">{f.line}</span>
-        </p>
+        {/* All frames share one grid cell, the others invisible: the card keeps the tallest frame's
+            size, so neither the card nor the Next button jumps between frames. */}
+        <div className="grid w-full">
+          {FRAMES.map((fr, j) => (
+            <div
+              key={j}
+              className={`col-start-1 row-start-1 flex flex-col items-center gap-4 ${j === i ? 'fade-in' : 'invisible'}`}
+              aria-hidden={j !== i}
+            >
+              {fr.icon}
+              <p className="flex flex-col gap-1" aria-live={j === i ? 'polite' : undefined}>
+                <span className="font-display text-3xl leading-tight text-balance">{fr.title}</span>
+                <span className="font-display text-xl leading-tight text-muted">{fr.line}</span>
+              </p>
+            </div>
+          ))}
+        </div>
         <span className="flex gap-2" aria-hidden="true">
           {FRAMES.map((_, j) => (
             <span key={j} className={`h-2.5 w-2.5 ${j === i ? 'bg-red outline-2 outline-ink' : 'bg-border'}`} />

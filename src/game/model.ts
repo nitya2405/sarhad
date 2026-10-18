@@ -114,6 +114,15 @@ function withStats(player: SavedPlayer, today: string): SavedPlayer {
   return { ...player, streak: s.streak, best: s.best, lastWinDate: lastWin ?? player.lastWinDate };
 }
 
+/**
+ * Practice only: the give-up pop-up paused the clock for `ms`. Start and guess times move forward
+ * by the pause, so the elapsed time leaves it out. Dailies never pause (the server keeps time).
+ */
+export function resumeAfterPause(a: LocalAttempt, ms: number): LocalAttempt {
+  if (a.mode !== 'practice' || a.status !== 'playing' || !(ms > 0)) return a;
+  return { ...a, startedAt: a.startedAt + ms, guesses: a.guesses.map((g) => ({ ...g, at: g.at + ms })) };
+}
+
 /** Elapsed ms of a finished attempt (start → winning guess or give-up). */
 export const elapsedMs = (a: LocalAttempt) => (a.finishedAt ?? a.startedAt) - a.startedAt;
 

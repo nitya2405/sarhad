@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useKeyboardInset, useReducedMotion } from '../lib/hooks.ts';
 import { isWon, linkedSet, shortestRouteWithin, type Puzzle, type RegionId } from '@engine/index.ts';
 import { GuessInput } from '../components/GuessInput.tsx';
 import { GuessBar, GuessList } from '../components/GuessList.tsx';
@@ -21,7 +22,7 @@ interface ReadyProps {
 
 export function Ready({ mode, busy, error, onStart, onHome }: ReadyProps) {
   return (
-    <div className="mx-auto flex min-h-[var(--app-h,100dvh)] flex-col p-4">
+    <div className="mx-auto flex h-full flex-col p-4">
       <div className="flex items-center justify-between">
         <BackButton onClick={onHome} />
         <span className="font-display text-base uppercase tracking-wide text-muted">{mode === 'daily' ? 'Today' : 'Practice'}</span>
@@ -30,8 +31,8 @@ export function Ready({ mode, busy, error, onStart, onHome }: ReadyProps) {
         <h1 className="text-5xl">
           <Mark busy={busy} label="Starting" />
         </h1>
+        {/* no autoFocus: on a phone the keyboard opens only when the player taps the input */}
         <button
-          autoFocus
           disabled={busy}
           className="btn w-full max-w-xs text-2xl"
           onClick={onStart}
@@ -57,12 +58,14 @@ interface Props {
   /** `now` = startedAt + monotonic elapsed, so device clock changes cannot move the time */
   onGuess: (id: RegionId, now: number) => void;
   onGiveUp: (now: number) => void;
+  /** practice only: the give-up pop-up paused the clock for `ms` */
+  onResume: (ms: number) => void;
   onHome: () => void;
   /** a tap during the win celebration goes straight to the result */
   onSkip: () => void;
 }
 
-export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, onSkip }: Props) {
+export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onResume, onHome, onSkip }: Props) {
   // Display uses performance.now(); the persisted startedAt only sets the baseline on resume.
   const elapsed = useMemo(() => {
     const base = Math.max(0, Date.now() - attempt.startedAt);
@@ -76,7 +79,12 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
     const id = setInterval(() => tick((n) => n + 1), 250);
     return () => clearInterval(id);
   }, [playing]);
+  // Give-up pop-up. Practice: the clock pauses while it is open (pausedAt = elapsed ms when opened).
+  // Daily: it can't pause, the server measures the official time.
   const [confirmGiveUp, setConfirmGiveUp] = useState(false);
+  const [pausedAt, setPausedAt] = useState<number | null>(null);
+  const keyboard = useKeyboardInset();
+  const reduced = useReducedMotion();
   const [pulse, setPulse] = useState<{ id: RegionId; n: number }>();
   const [toast, setToast] = useState<{ text: string; n: number }>();
   useEffect(() => {
@@ -88,9 +96,21 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
 
   const ids = useMemo(() => attempt.guesses.map((g) => g.id), [attempt.guesses]);
   const linked = useMemo(() => linkedSet(puzzle.start, puzzle.end, ids, adjacency), [puzzle, ids]);
-  const now = () => attempt.startedAt + elapsed();
+  const now = () => attempt.startedAt + (pausedAt ?? elapsed());
   const won = attempt.status === 'won';
-  const shownMs = playing ? elapsed() : (attempt.finishedAt ?? attempt.startedAt) - attempt.startedAt;
+  const daily = attempt.mode === 'daily';
+  const shownMs = playing ? (pausedAt ?? elapsed()) : (attempt.finishedAt ?? attempt.startedAt) - attempt.startedAt;
+
+  function openGiveUp() {
+    (document.activeElement as HTMLElement | null)?.blur(); // closes the keyboard
+    if (!daily) setPausedAt(elapsed());
+    setConfirmGiveUp(true);
+  }
+  function keepPlaying() {
+    if (pausedAt != null) onResume(elapsed() - pausedAt);
+    setPausedAt(null);
+    setConfirmGiveUp(false);
+  }
 
   function guess(id: RegionId) {
     const next = [...ids, id];
@@ -107,42 +127,32 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
 
   return (
     <div
-      className="mx-auto flex h-[var(--app-h,100dvh)] flex-col overflow-hidden"
+      className="mx-auto flex h-full flex-col overflow-hidden"
+      data-game-screen
+      // Keyboard open: the whole screen slides up by its height (nothing shrinks); back down on close.
+      style={{ transform: keyboard ? `translateY(${-keyboard}px)` : undefined, transition: reduced ? 'none' : 'transform 200ms ease' }}
       onClick={won ? onSkip : undefined}
       onKeyDown={won ? onSkip : undefined}
     >
-      <header className="game-head px-4 pt-2">
-        <div className="game-head-grid">
-          <span style={{ gridArea: 'back' }}>
-            <BackButton onClick={onHome} />
-          </span>
-          <h1 className="min-w-0 text-lg leading-tight text-balance" style={{ gridArea: 'title' }}>
-            <Pair a={regionName(puzzle.start)} b={regionName(puzzle.end)} />
-          </h1>
-          <span className="num justify-self-end font-display text-2xl" style={{ gridArea: 'time' }} aria-label="Time">
+      <header className="px-4 pt-2">
+        <div className="flex items-center gap-2">
+          <BackButton onClick={onHome} />
+          <span className="num ml-auto font-display text-2xl" aria-label="Time">
             {formatClock(shownMs)}
           </span>
           {playing && (
-            <button className={iconBtn} style={{ gridArea: 'flag' }} aria-label="Give up" onClick={() => setConfirmGiveUp((v) => !v)}>
+            <button className={iconBtn} aria-label="Give up" aria-haspopup="dialog" onClick={openGiveUp}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
               </svg>
             </button>
           )}
         </div>
-        {confirmGiveUp && playing ? (
-          <div className="fade-in flex flex-wrap items-center justify-end gap-2 pb-1 text-sm">
-            <span className="font-semibold">Give up?</span>
-            <button className="btn btn-2 min-h-11 px-3 text-base" onClick={() => onGiveUp(now())}>
-              Yes, give up
-            </button>
-            <button className="btn min-h-11 px-3 text-base" onClick={() => setConfirmGiveUp(false)}>
-              Keep playing
-            </button>
-          </div>
-        ) : (
-          <GuessBar used={ids.length} />
-        )}
+        {/* the pair on its own row: both names in full, wrapping cleanly at 320px */}
+        <h1 className="mt-1 text-center text-[22px] leading-tight text-balance">
+          <Pair a={regionName(puzzle.start)} b={regionName(puzzle.end)} />
+        </h1>
+        <GuessBar used={ids.length} />
       </header>
 
       <div className="min-h-0 flex-1 px-4 py-1.5">
@@ -185,6 +195,22 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
           />
         )}
       </div>
+      {confirmGiveUp && playing && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink/55 p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="give-up-title" className="panel pop-in flex w-full max-w-xs flex-col gap-3 px-5 pt-6 pb-5 text-center">
+            <h2 id="give-up-title" className="font-display text-3xl">
+              Give up?
+            </h2>
+            <p className="text-sm text-muted">{daily ? 'The clock keeps running.' : 'The clock is paused.'}</p>
+            <button className="btn w-full" onClick={() => onGiveUp(now())}>
+              Yes, give up
+            </button>
+            <button className="btn btn-2 w-full" onClick={keepPlaying}>
+              Keep playing
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
