@@ -125,3 +125,20 @@ test('My stats opens from Home (offline build) and returns', async ({ page }) =>
   await page.getByRole('button', { name: 'Home' }).click();
   await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
 });
+
+test('the vibration toggle shows where navigator.vibrate exists (Android)', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Vibration' })).toBeVisible();
+});
+
+test('no vibration toggle without navigator.vibrate (iPhone / iOS)', async ({ page }) => {
+  await page.addInitScript(() => {
+    delete (Navigator.prototype as { vibrate?: unknown }).vibrate;
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vibration' })).toHaveCount(0);
+  // the streak/points pill keeps its place on the right
+  const pill = (await page.getByLabel(/points$/).boundingBox())!;
+  expect(pill.x + pill.width).toBeGreaterThan((page.viewportSize()!.width * 2) / 3);
+});

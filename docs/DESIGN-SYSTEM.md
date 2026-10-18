@@ -185,7 +185,7 @@ The stitch is an ink dashed thread, 2.5 px with round caps, dash 6 and gap 5, on
 | Win | pulse along the route, endpoint glow, "CONNECTED!" sticker, points count up (800 ms). No confetti. | 20-60-20-60-80 |
 | Button press | 4 px travel, lip 6 → 2 px (80 ms) | — |
 
-Haptics are feature-detected (a no-op on iOS) and can be switched off on Home (saved per device, default on).
+Haptics are feature-detected and can be switched off on Home (saved per device, default on). Where `navigator.vibrate` is missing (iPhone/iOS) the toggle is not shown at all; Android keeps it.
 
 ## Copy budget
 

@@ -7,7 +7,7 @@ import { Coin, Flame } from '../components/pixel.tsx';
 import { elapsedMs, type Stats } from '../game/model.ts';
 import type { LocalAttempt, SavedPlayer } from '../game/storage.ts';
 import { formatDate, formatTime } from '../lib/format.ts';
-import { hapticsOn, setHapticsOn } from '../lib/haptics.ts';
+import { hapticsOn, hapticsSupported, setHapticsOn } from '../lib/haptics.ts';
 import { serverEnabled } from '../lib/server.ts';
 
 interface Props {
@@ -48,21 +48,24 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
   return (
     <div className="home-bg mx-auto flex min-h-[var(--app-h,100dvh)] flex-col px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <header className="flex items-center justify-between gap-3">
-        <button
-          className={`${icon} ${haptics ? '' : 'text-muted'}`}
-          aria-label="Vibration"
-          aria-pressed={haptics}
-          onClick={() => {
-            setHapticsOn(!haptics);
-            setHaptics(!haptics);
-          }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <rect x="8" y="4" width="8" height="16" rx="2" />
-            {haptics ? <path d="M4 9v6M20 9v6M1.5 11v2M22.5 11v2" /> : <path d="M3 3l18 18" />}
-          </svg>
-        </button>
-        <p className="num flex flex-wrap items-center justify-end gap-x-3 rounded-full border-[3px] border-ink bg-white px-3 py-1 font-display text-xl">
+        {/* no vibration API on iPhone/iOS: no toggle there */}
+        {hapticsSupported() && (
+          <button
+            className={`${icon} ${haptics ? '' : 'text-muted'}`}
+            aria-label="Vibration"
+            aria-pressed={haptics}
+            onClick={() => {
+              setHapticsOn(!haptics);
+              setHaptics(!haptics);
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <rect x="8" y="4" width="8" height="16" rx="2" />
+              {haptics ? <path d="M4 9v6M20 9v6M1.5 11v2M22.5 11v2" /> : <path d="M3 3l18 18" />}
+            </svg>
+          </button>
+        )}
+        <p className="num ml-auto flex flex-wrap items-center justify-end gap-x-3 rounded-full border-[3px] border-ink bg-white px-3 py-1 font-display text-xl">
           <span className="inline-flex items-center gap-1.5" aria-label={`Streak ${stats.streak}`}>
             <Flame /> {stats.streak}
           </span>
