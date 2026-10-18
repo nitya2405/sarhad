@@ -7,7 +7,7 @@ import { PixelBar } from './pixel.tsx';
  * This row alone is enough to play (map failed to load, screen readers).
  */
 export function GuessList({ guesses, linked, pulse }: { guesses: RegionId[]; linked: Set<RegionId>; pulse?: { id: RegionId; n: number } }) {
-  if (guesses.length === 0) return null;
+  if (guesses.length === 0) return <p className="flex min-h-8 items-center text-sm text-muted">Your guesses show here</p>;
   return (
     <ol aria-label="Your guesses, newest first" className="flex flex-wrap gap-1.5">
       {[...guesses].reverse().map((id) => {

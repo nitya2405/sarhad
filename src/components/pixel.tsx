@@ -9,6 +9,42 @@ const PALETTE: Record<string, string> = {
   w: '#fff',
 };
 
+/** One rect per horizontal run of a sprite, in grid units (for placing inside a larger SVG). */
+export function SpriteRects({ rows }: { rows: string[] }) {
+  const rects: { x: number; y: number; n: number; c: string }[] = [];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; ) {
+      const c = row[x];
+      let n = 1;
+      while (row[x + n] === c) n++;
+      if (c !== '.') rects.push({ x, y, n, c });
+      x += n;
+    }
+  });
+  return (
+    <>
+      {rects.map((r, i) => (
+        <rect key={i} x={r.x} y={r.y} width={r.n} height={1} fill={PALETTE[r.c]} />
+      ))}
+    </>
+  );
+}
+
+/** Map pin, 9×11: white teardrop, ink outline, solid red dot; the tip is the bottom-centre pixel. */
+export const PIN = [
+  '..kkkkk..',
+  '.kwwwwwk.',
+  'kwwwwwwwk',
+  'kwwrrrwwk',
+  'kwwrrrwwk',
+  'kwwrrrwwk',
+  '.kwwwwwk.',
+  '.kwwwwwk.',
+  '..kwwwk..',
+  '...kwk...',
+  '....k....',
+];
+
 /** Draws a sprite from rows of palette letters ('.' = empty), one rect per horizontal run. */
 function Sprite({ rows, px, className = '' }: { rows: string[]; px: number; className?: string }) {
   const w = Math.max(...rows.map((r) => r.length));
@@ -55,28 +91,8 @@ const COIN = [
   '..kkkk..',
 ];
 
-const HEART = ['.kk.kk.', 'krrkrrk', 'krhrrrk', 'khrrrrk', '.krrrk.', '..krk..', '...k...'];
-const HEART_EMPTY = ['.kk.kk.', 'kwwkwwk', 'kwwwwwk', 'kwwwwwk', '.kwwwk.', '..kwk..', '...k...'];
-
 export const Flame = ({ px = 3 }: { px?: number }) => <Sprite rows={FLAME} px={px} />;
 export const Coin = ({ px = 3 }: { px?: number }) => <Sprite rows={COIN} px={px} />;
-
-/** Guesses left out of 20 as two compact rows of pixel hearts: filled = left (like the guesses bar), outline = spent. */
-export function Hearts({ used }: { used: number }) {
-  const left = Math.max(0, GUESS_CAP - used);
-  return (
-    <p className="flex flex-col items-center gap-1" aria-label={`${left} of ${GUESS_CAP} guesses left`}>
-      {[0, 1].map((row) => (
-        <span key={row} className="flex gap-1">
-          {Array.from({ length: GUESS_CAP / 2 }, (_, i) => {
-            const n = row * (GUESS_CAP / 2) + i;
-            return <Sprite key={n} rows={n < left ? HEART : HEART_EMPTY} px={2} />;
-          })}
-        </span>
-      ))}
-    </p>
-  );
-}
 
 /** Pixel bar of guesses left: ink frame, 20 red cells draining from the right as guesses are spent. */
 export function PixelBar({ left }: { left: number }) {

@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
 test('Home renders with the Play button (not a blank page)', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Sarhad' })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -45,8 +45,13 @@ test('first open shows the 3-frame coach; tapping through closes it', async ({ p
   });
   await page.goto('/');
   const coach = page.getByRole('dialog', { name: 'How to play' });
-  await expect(coach).toContainText('Two states. Join them by land.');
-  for (let i = 0; i < 3; i++) await coach.getByRole('button').click();
+  await expect(coach).toContainText('Two states light up.');
+  await expect(coach).toContainText('Join them by land.');
+  await coach.getByRole('button', { name: 'Next' }).click();
+  await expect(coach).toContainText('Type a state in between.');
+  await coach.getByRole('button', { name: 'Next' }).click();
+  await expect(coach).toContainText('Be fast. More points.');
+  await coach.getByRole('button', { name: 'Play' }).click();
   await expect(coach).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -98,4 +103,25 @@ test('a tap skips the win celebration', async ({ page }) => {
   await input.press('Enter');
   await page.mouse.click(180, 300);
   await expect(page.getByRole('heading', { name: 'Connected!' })).toBeVisible({ timeout: 500 });
+});
+
+test('part of an endpoint name + Enter names that endpoint, not "Not a state name"', async ({ page }) => {
+  await playFixedPractice(page, 'AR-BR'); // start: Arunachal Pradesh, end: Bihar
+  const input = page.getByLabel('Name a state or union territory');
+  await input.fill('Arun');
+  await input.press('Enter');
+  await expect(page.getByRole('status')).toHaveText("That's your start");
+  await input.fill('Bih');
+  await input.press('Enter');
+  await expect(page.getByRole('status')).toHaveText("That's your end");
+  await expect(page.getByRole('group', { name: 'Guess 1 of 20' })).toBeAttached();
+});
+
+test('My stats opens from Home (offline build) and returns', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'My stats' }).click();
+  await expect(page.getByRole('heading', { name: 'My stats' })).toBeVisible();
+  await expect(page.getByText('No daily wins yet.')).toBeVisible();
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
 });

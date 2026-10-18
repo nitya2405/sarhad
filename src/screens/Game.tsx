@@ -21,7 +21,7 @@ interface ReadyProps {
 
 export function Ready({ mode, busy, error, onStart, onHome }: ReadyProps) {
   return (
-    <div className="mx-auto flex min-h-[var(--app-h,100dvh)] max-w-md flex-col p-4">
+    <div className="mx-auto flex min-h-[var(--app-h,100dvh)] flex-col p-4">
       <div className="flex items-center justify-between">
         <BackButton onClick={onHome} />
         <span className="font-display text-base uppercase tracking-wide text-muted">{mode === 'daily' ? 'Today' : 'Practice'}</span>
@@ -94,7 +94,7 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
 
   return (
     <div
-      className="mx-auto flex h-[var(--app-h,100dvh)] max-w-md flex-col overflow-hidden"
+      className="mx-auto flex h-[var(--app-h,100dvh)] flex-col overflow-hidden"
       onClick={won ? onSkip : undefined}
       onKeyDown={won ? onSkip : undefined}
     >
@@ -132,18 +132,22 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onHome, on
         )}
       </header>
 
-      <div className="min-h-0 flex-1 px-2 py-1">
-        <MapView
-          start={puzzle.start}
-          end={puzzle.end}
-          guesses={ids}
-          linked={linked}
-          latest={ids.at(-1)}
-          route={won ? (shortestRouteWithin(puzzle.start, puzzle.end, ids, adjacency) ?? undefined) : undefined}
-          celebrate={won}
-          interactive
-          className="h-full w-full"
-        />
+      <div className="min-h-0 flex-1 px-4 py-1.5">
+        <div className="relative h-full overflow-hidden rounded-[18px] border-2 border-ink bg-white">
+          <MapView
+            start={puzzle.start}
+            end={puzzle.end}
+            guesses={ids}
+            linked={linked}
+            latest={ids.at(-1)}
+            route={won ? (shortestRouteWithin(puzzle.start, puzzle.end, ids, adjacency) ?? undefined) : undefined}
+            celebrate={won}
+            interactive
+            zoom
+            inset
+            className="absolute inset-0"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">

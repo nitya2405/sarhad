@@ -39,7 +39,7 @@ describe('App (smoke)', () => {
   it('plays today’s daily from Home to Result, rejecting bad input without spending guesses', async () => {
     const puzzle = dailyPuzzle(istDate(Date.now()))!;
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Play daily/ }));
     // Ready: endpoints hidden until Start
     expect(screen.queryByText(new RegExp(regionName(puzzle.start)))).toBeNull();
     fireEvent.click(screen.getByText('Start'));
@@ -56,7 +56,7 @@ describe('App (smoke)', () => {
     for (const id of puzzle.shortest.slice(1, -1)) type(regionName(id));
     await act(async () => {});
     expect(await screen.findByText('Connected!', undefined, { timeout: 3000 })).toBeTruthy(); // after the win pulse
-    expect(screen.getByText('You found a shortest route!')).toBeTruthy();
+    expect(screen.getByText('Shortest route ✓')).toBeTruthy();
 
     // F2: reopening lands on Done today, not a second attempt
     cleanup();

@@ -44,7 +44,7 @@ describe('App (server build)', () => {
       k: PUZZLE.k, startedAt: Date.now(), status: 'playing',
     });
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Play daily/ }));
     expect(startDaily).not.toHaveBeenCalled(); // Ready reveals nothing and asks the server nothing
     await act(async () => fireEvent.click(screen.getByText('Start')));
     expect(startDaily).toHaveBeenCalledTimes(1);
@@ -56,7 +56,7 @@ describe('App (server build)', () => {
   it('shows "Needs a connection to start" when start_daily fails; Practice still works', async () => {
     startDaily.mockResolvedValue(null);
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Play daily/ }));
     await act(async () => fireEvent.click(screen.getByText('Start')));
     expect(screen.getByRole('alert').textContent).toMatch(/Needs a connection to start/);
     expect(localStorage.getItem(STORAGE_KEY) ?? '').not.toContain('"mode":"daily"');
@@ -70,7 +70,7 @@ describe('App (server build)', () => {
   it('shows "No daily today — try Practice" when the server has nothing scheduled', async () => {
     startDaily.mockResolvedValue('no_daily');
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Play daily/ }));
     await act(async () => fireEvent.click(screen.getByText('Start')));
     expect(screen.getByRole('alert').textContent).toBe('No daily today — try Practice');
     expect(localStorage.getItem(STORAGE_KEY) ?? '').not.toContain('"mode":"daily"');

@@ -13,12 +13,14 @@ const NO_DAILY = 'No daily today — try Practice';
 import { Home } from './screens/Home.tsx';
 import { Game, Ready } from './screens/Game.tsx';
 import { Result } from './screens/Result.tsx';
+import { Board } from './screens/Board.tsx';
 
 type View =
   | { name: 'home' }
   | { name: 'ready'; mode: 'daily' | 'practice'; date: string; puzzleId: string }
   | { name: 'game'; attemptId: string }
-  | { name: 'result'; attemptId: string };
+  | { name: 'result'; attemptId: string }
+  | { name: 'board' };
 
 /** Hide attempts whose puzzle is no longer in the shipped data (never crash on them). */
 function readPlayer(): SavedPlayer {
@@ -62,6 +64,7 @@ export function App() {
   // Braces matter: Chromium's scrollTo returns a Promise, which React would call as the cleanup.
   useEffect(() => {
     window.scrollTo(0, 0);
+    document.body.dataset.screen = view.name === 'home' ? 'home' : 'app'; // colour outside the column
   }, [view.name]);
 
   function commit(p: SavedPlayer) {
@@ -159,7 +162,7 @@ export function App() {
   }
 
   if (view.name === 'game' && attempt && puzzle) {
-    if (attempt.status === 'lost') return <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} />;
+    if (attempt.status === 'lost') return <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} onBoard={() => setView({ name: 'board' })} />;
     return (
       <Game
         attempt={attempt}
@@ -174,8 +177,10 @@ export function App() {
   }
 
   if (view.name === 'result' && attempt && puzzle) {
-    return <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} />;
+    return <Result attempt={attempt} puzzle={puzzle} player={player} stats={s} onPractice={openPractice} onHome={() => setView({ name: 'home' })} onBoard={() => setView({ name: 'board' })} />;
   }
+
+  if (view.name === 'board') return <Board player={player} stats={s} today={today} onHome={() => setView({ name: 'home' })} />;
 
   const todayAttempt = findDaily(player, today);
   const active = activeAttempt(player);
@@ -191,6 +196,7 @@ export function App() {
       onDaily={openDaily}
       onPractice={openPractice}
       onOpen={(a) => setView(viewFor(a))}
+      onBoard={() => setView({ name: 'board' })}
     />
   );
 }

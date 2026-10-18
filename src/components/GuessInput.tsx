@@ -77,11 +77,18 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
         return 'No land border — not playable';
       case 'endpoint': {
         // Resolve again without endpoints to tell which one was meant.
-        const r = resolveInput(text, { ...ctx, start: '', end: '' });
-        const id = r.type === 'accept' ? r.id : r.type === 'suggest' ? r.highlight : undefined;
+        const r = resolveInput(text, { ...ctx, start: '', end: '', guesses: [] });
+        const id = r.type === 'accept' ? r.id : r.type === 'suggest' ? (r.highlight ?? r.ids[0]) : undefined;
         return id === end ? "That's your end" : "That's your start";
       }
     }
+  }
+
+  /** A partial name that only fits the start or end state (e.g. "Arun" when Arunachal Pradesh is the start). */
+  function partOfEndpoint(): boolean {
+    const r = resolveInput(text, { ...ctx, start: '', end: '', guesses: [] });
+    const ids = r.type === 'accept' ? [r.id] : r.type === 'suggest' ? r.ids : [];
+    return ids.length > 0 && ids.every((id) => id === start || id === end);
   }
 
   function submit(e: FormEvent) {
@@ -90,7 +97,7 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
     if (!normalize(text)) return reject('empty');
     const r = resolveInput(text, ctx);
     if (r.type === 'accept') return accept(r.id);
-    if (r.type === 'reject') return reject(r.reason);
+    if (r.type === 'reject') return reject(r.reason === 'unknown' && partOfEndpoint() ? 'endpoint' : r.reason);
     if (r.highlight) {
       // misspelling: offer one chip, never auto-accept
       setDidYouMean({ id: r.highlight, text });
