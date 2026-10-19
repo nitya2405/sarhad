@@ -2,6 +2,8 @@
 
 A one-minute daily puzzle: you get two Indian states and join them by land, naming the states and union territories in between in any order. Faster wins score more. Everyone gets the same pair each day (Asia/Kolkata date). Practice gives you a random pair at any time and works offline.
 
+**Play:** https://sarhad-teal.vercel.app (open it on a phone) · **Explainer:** [docs/Sarhad-Explainer.pdf](docs/Sarhad-Explainer.pdf)
+
 React 19 + Vite + Tailwind PWA on Vercel; Supabase (Postgres, anonymous auth, one Edge Function) for the daily and the leaderboard.
 
 - Spec: [`docs/DESIGN.md`](docs/DESIGN.md) · Visual system: [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md)
@@ -152,8 +154,7 @@ npm run font:wordmark  # Silkscreen subset for the wordmark; needs Python with f
 
 ## Known limits
 
-- The map file predates the 2014 Khammam transfer. **AP–CG** (kept) and **OD–TG** (excluded) follow the post-2014 borders and still need confirming on the official political map.
-- Not yet checked on real devices: on-screen keyboard behaviour, sound, screen readers. Open a game with `?debug=1` to see the layout numbers (svh, innerHeight, visual viewport, map size, viewBox).
+- The map file predates the 2014 Khammam transfer; the border graph follows the post-2014 borders (AP–CG linked, OD–TG not), see [ADJACENCY_NOTES.md](data/ADJACENCY_NOTES.md).
 - The schedule covers 2026-10-15 to 2027-10-14 and must be extended (append only) before it runs out.
 - The puzzle pool has routes of 2–5 regions; there are none of 6.
 - GitHub turns off scheduled workflows after 60 days without repository activity, so check that the keepalive is still running.
@@ -162,3 +163,7 @@ npm run font:wordmark  # Silkscreen subset for the wordmark; needs Python with f
   - After the first finished game the app asks for persistent storage (`navigator.storage.persist()`).
   - iOS players (Safari, Chrome, any iOS browser) see an "Add to Home Screen" tip, because iOS deletes a site's storage after 7 days without a visit.
 - English UI only. GPS, state leaderboards, streak freezes and notifications are out of scope.
+
+## Where I used AI tools
+
+See page 8 of the [explainer](docs/Sarhad-Explainer.pdf).
