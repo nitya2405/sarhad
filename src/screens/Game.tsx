@@ -116,11 +116,11 @@ export function Game({ attempt, puzzle, firstGame, onGuess, onGiveUp, onResume, 
     const next = [...ids, id];
     if (isWon(puzzle.start, puzzle.end, next, adjacency)) {
       buzz(PATTERN.won);
-      say('Raasta clear!');
+      say('Connected!');
     } else if (linkedSet(puzzle.start, puzzle.end, next, adjacency).has(id)) buzz(PATTERN.connected);
     else {
       buzz(PATTERN.accepted);
-      say('Abhi juda nahi'); // not joined to either end yet: never "wrong", it may join later
+      say('Not linked yet'); // not joined to either end yet: never "wrong", it may join later
     }
     onGuess(id, now());
   }

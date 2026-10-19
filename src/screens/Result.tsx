@@ -119,9 +119,7 @@ export function Result({ attempt, puzzle, stats, onPractice, onHome, onBoard }: 
 
             <p className="font-display text-lg">
               {foundShortest ? (
-                <>
-                  Ekdum seedha! <span className="text-muted">Shortest route ✓</span>
-                </>
+                'Shortest route ✓'
               ) : (
                 `Shortest: ${puzzle.k} ${puzzle.k === 1 ? 'state' : 'states'}`
               )}

@@ -21,20 +21,22 @@ async function guess(page: Page, text: string) {
   await input.press('Enter');
 }
 
-test('toasts: "Abhi juda nahi" for a guess not joined yet, "Raasta clear!" on the win; "Ekdum seedha!" for a shortest route', async ({ page }) => {
+test('toasts: "Not linked yet" for a guess not joined yet, "Connected!" on the win; "Shortest route ✓" for a shortest route', async ({ page }) => {
   await seedPractice(page);
   await page.goto('/');
   await guess(page, 'Punjab');
-  await expect(page.getByText('Abhi juda nahi')).toBeVisible();
-  await expect(page.getByText('Abhi juda nahi')).toHaveCount(0, { timeout: 3000 }); // goes away by itself
+  await expect(page.getByText('Not linked yet')).toBeVisible();
+  await expect(page.getByText('Not linked yet')).toHaveCount(0, { timeout: 3000 }); // goes away by itself
   await guess(page, 'Maharashtra'); // joined to Gujarat: no toast
   await page.waitForTimeout(150);
-  await expect(page.getByText('Abhi juda nahi')).toHaveCount(0);
+  await expect(page.getByText('Not linked yet')).toHaveCount(0);
   await guess(page, 'Karnataka');
-  await expect(page.getByText('Raasta clear!')).toBeVisible();
+  await expect(page.locator('.toast', { hasText: 'Connected!' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Connected!' })).toBeVisible();
   // Punjab was spare, but the route inside is still the shortest one
-  await expect(page.getByText('Ekdum seedha!')).toBeVisible();
+  await expect(page.getByText('Shortest route ✓', { exact: true })).toBeVisible();
+  // plain English only
+  for (const t of ['Raasta clear!', 'Abhi juda nahi', 'Ekdum seedha!']) await expect(page.getByText(t)).toHaveCount(0);
 });
 
 test("Ready shows the '? ⋯⋯ ?' mark idling: six dots, animated", async ({ page }) => {

@@ -593,7 +593,7 @@ body[data-screen="home"] #root {
   }
 }
 
-/* ---------- game toast: "Raasta clear!", "Abhi juda nahi" ---------- */
+/* ---------- game toast: "Connected!", "Not linked yet" ---------- */
 .toast {
   animation: toast 1300ms var(--ease-out) forwards;
 }
