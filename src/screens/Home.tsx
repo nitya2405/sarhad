@@ -8,7 +8,7 @@ import { Coin, Flame } from '../components/pixel.tsx';
 import { elapsedMs, type Stats } from '../game/model.ts';
 import type { LocalAttempt, SavedPlayer } from '../game/storage.ts';
 import { formatDate, formatTime } from '../lib/format.ts';
-import { hapticsOn, hapticsSupported, setHapticsOn } from '../lib/haptics.ts';
+import { setSoundOn, soundOn } from '../lib/sound.ts';
 import { serverEnabled } from '../lib/server.ts';
 import { dismissInstallTip, showInstallTip } from '../lib/persist.ts';
 import { localName } from '../lib/name.ts';
@@ -41,7 +41,7 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
   // First open: the name card, then How to play.
   const [naming, setNaming] = useState(() => !coachSeen() && !localName());
   const [coach, setCoach] = useState(() => !coachSeen());
-  const [haptics, setHaptics] = useState(hapticsOn);
+  const [sound, setSound] = useState(soundOn);
   const [installTip, setInstallTip] = useState(showInstallTip);
   const done = todayAttempt && todayAttempt.status !== 'playing' ? todayAttempt : undefined;
   // One practice button: continue the one in progress, or start a new one.
@@ -54,23 +54,20 @@ export function Home({ stats, today, dailyAvailable, dailyNote, todayAttempt, re
   return (
     <div className="home-bg mx-auto flex h-full flex-col overflow-hidden px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <header className="flex items-center justify-between gap-3">
-        {/* no vibration API on iPhone/iOS: no toggle there */}
-        {hapticsSupported() && (
-          <button
-            className={`${icon} ${haptics ? '' : 'text-muted'}`}
-            aria-label="Vibration"
-            aria-pressed={haptics}
-            onClick={() => {
-              setHapticsOn(!haptics);
-              setHaptics(!haptics);
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <rect x="8" y="4" width="8" height="16" rx="2" />
-              {haptics ? <path d="M4 9v6M20 9v6M1.5 11v2M22.5 11v2" /> : <path d="M3 3l18 18" />}
-            </svg>
-          </button>
-        )}
+        <button
+          className={`${icon} ${sound ? '' : 'text-muted'}`}
+          aria-label="Sound"
+          aria-pressed={sound}
+          onClick={() => {
+            setSoundOn(!sound);
+            setSound(!sound);
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 9h4l5-4v14l-5-4H4z" />
+            {sound ? <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /> : <path d="M17 9l5 6M22 9l-5 6" />}
+          </svg>
+        </button>
         <p className="num ml-auto flex flex-wrap items-center justify-end gap-x-3 rounded-full border-[3px] border-ink bg-white px-3 py-1 font-display text-xl">
           <span className="inline-flex items-center gap-1.5" aria-label={`Streak ${stats.streak}`}>
             <Flame /> {stats.streak}

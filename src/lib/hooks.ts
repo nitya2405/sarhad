@@ -50,49 +50,37 @@ export function useReducedMotion(): boolean {
 }
 
 /**
- * --app-h = the tallest window.innerHeight seen at this width (starts over on rotation). Never the
- * visual viewport: the keyboard must not shrink the layout (the game slides up instead, useKeyboardInset).
+ * How far to lift the input bar so it sits right on top of the on-screen keyboard: the app's bottom
+ * edge minus the visual viewport's bottom (offsetTop + height); 0 when the keyboard is closed. Only
+ * the input bar uses this: the layout never reads the visual viewport, so nothing else moves or
+ * resizes. On every visual-viewport resize and every blur the page is scrolled back to the top, so iOS
+ * can't leave it shifted.
  */
-export function useAppHeight(): void {
-  useEffect(() => {
-    let width = window.innerWidth;
-    let tallest = 0;
-    const set = () => {
-      if (window.innerWidth !== width) {
-        width = window.innerWidth;
-        tallest = 0;
-      }
-      tallest = Math.max(tallest, window.innerHeight);
-      document.documentElement.style.setProperty('--app-h', `${tallest}px`);
-    };
-    set();
-    window.addEventListener('resize', set);
-    return () => window.removeEventListener('resize', set);
-  }, []);
-}
-
-/**
- * How far the on-screen keyboard covers the app column: the column's bottom minus the bottom of the
- * visual viewport. 0 when closed (small toolbar changes are ignored).
- */
-export function useKeyboardInset(): number {
-  const [inset, setInset] = useState(0);
+export function useKeyboardLift(): number {
+  const [lift, setLift] = useState(0);
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return;
+    const top = () => window.scrollTo(0, 0);
     const on = () => {
+      top();
+      if (!vv) return;
       const bottom = document.getElementById('root')?.getBoundingClientRect().bottom ?? window.innerHeight;
       const covered = Math.round(bottom - (vv.offsetTop + vv.height));
-      setInset(covered > 80 ? covered : 0);
-      if (window.scrollY !== 0) window.scrollTo(0, 0); // iOS may scroll the page to the input
+      setLift(covered > 60 ? covered : 0); // small toolbar changes are not a keyboard
+    };
+    const blur = () => {
+      top();
+      requestAnimationFrame(top); // again after iOS has finished closing the keyboard
     };
     on();
-    vv.addEventListener('resize', on);
-    vv.addEventListener('scroll', on);
+    vv?.addEventListener('resize', on);
+    vv?.addEventListener('scroll', on);
+    document.addEventListener('focusout', blur);
     return () => {
-      vv.removeEventListener('resize', on);
-      vv.removeEventListener('scroll', on);
+      vv?.removeEventListener('resize', on);
+      vv?.removeEventListener('scroll', on);
+      document.removeEventListener('focusout', blur);
     };
   }, []);
-  return inset;
+  return lift;
 }

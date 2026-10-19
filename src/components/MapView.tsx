@@ -22,22 +22,27 @@ function useMapData(): MapData | null | undefined {
   return map;
 }
 
-/** Element size in CSS px, kept current. */
-function useSize(ref: RefObject<HTMLElement | null>): { w: number; h: number } {
+/**
+ * Element size in CSS px, kept current. `stableHeight`: once measured, a change in height alone is
+ * ignored (only a width change re-measures), so the zoom never reacts to the on-screen keyboard.
+ */
+function useSize(ref: RefObject<HTMLElement | null>, stableHeight = false): { w: number; h: number } {
   const [size, setSize] = useState({ w: 0, h: 0 });
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
       const r = el.getBoundingClientRect();
-      setSize((p) => (p.w === r.width && p.h === r.height ? p : { w: r.width, h: r.height }));
+      setSize((p) =>
+        (p.w === r.width && p.h === r.height) || (stableHeight && p.h > 0 && p.w === r.width) ? p : { w: r.width, h: r.height },
+      );
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [ref]);
+  }, [ref, stableHeight]);
   return size;
 }
 
@@ -127,6 +132,8 @@ interface Props {
   focus?: RegionId[];
   /** small full-India inset with the current view, when zoomed in */
   inset?: boolean;
+  /** the zoom follows the panel's width only, never a change in its height */
+  stableHeight?: boolean;
   className?: string;
 }
 
@@ -146,6 +153,7 @@ export function MapView({
   zoom = false,
   focus = EMPTY,
   inset = false,
+  stableHeight = false,
   className = '',
 }: Props) {
   const map = useMapData();
@@ -155,7 +163,7 @@ export function MapView({
     () => (map ? (Array.isArray(map.viewBox) ? map.viewBox : map.viewBox.split(/[\s,]+/).map(Number)) : null),
     [map],
   );
-  const size = useSize(boxRef);
+  const size = useSize(boxRef, stableHeight);
   const boxes = useMemo(
     () => (map?.regions ? (Object.fromEntries(Object.entries(map.regions).map(([id, r]) => [id, pathBox(r.d)])) as Record<RegionId, Box>) : null),
     [map],

@@ -133,19 +133,52 @@ test('My stats opens from Home (offline build) and returns', async ({ page }) =>
   await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
 });
 
-test('the vibration toggle shows where navigator.vibrate exists (Android)', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Vibration' })).toBeVisible();
-});
-
-test('no vibration toggle without navigator.vibrate (iPhone / iOS)', async ({ page }) => {
+/** Counts the notes the page plays: every oscillator started through Web Audio. */
+async function countNotes(page: Page) {
   await page.addInitScript(() => {
-    delete (Navigator.prototype as { vibrate?: unknown }).vibrate;
+    const w = window as unknown as { notes: number };
+    w.notes = 0;
+    const orig = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function (this: AudioContext) {
+      w.notes++;
+      return orig.call(this);
+    };
   });
+  return () => page.evaluate(() => (window as unknown as { notes: number }).notes);
+}
+
+test('the sound toggle sits top-left, on by default; off is saved and plays nothing', async ({ page }) => {
+  const notes = await countNotes(page);
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Vibration' })).toHaveCount(0);
-  // the streak/points pill keeps its place on the right
-  const pill = (await page.getByLabel(/points$/).boundingBox())!;
-  expect(pill.x + pill.width).toBeGreaterThan((page.viewportSize()!.width * 2) / 3);
+  const toggle = page.getByRole('button', { name: 'Sound' });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.getByRole('button', { name: 'Vibration' }).count()).toBe(0);
+  const box = (await toggle.boundingBox())!;
+  expect(box.x).toBeLessThan(page.viewportSize()!.width / 3);
+
+  // on: Start plays a sound, a rejected guess plays one more
+  await page.getByRole('button', { name: 'Practice', exact: true }).click();
+  await page.getByRole('button', { name: 'Start' }).click();
+  await expect.poll(notes).toBeGreaterThan(0);
+  const afterStart = await notes();
+  const input = page.getByLabel('Name a state or union territory');
+  await input.fill('zzzz');
+  await input.press('Enter');
+  await expect.poll(notes).toBeGreaterThan(afterStart);
+
+  // off: saved across a reload, and nothing plays
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.getByRole('button', { name: 'Sound' }).click();
+  await expect(page.getByRole('button', { name: 'Sound' })).toHaveAttribute('aria-pressed', 'false');
+  expect(await page.evaluate(() => localStorage.getItem('sarhad:sound'))).toBe('0');
+  await page.getByRole('button', { name: 'Continue practice' }).click();
+  await page.reload(); // reopens the game in progress
+  await input.fill('zzzz');
+  await input.press('Enter');
+  await page.getByRole('button', { name: 'Give up' }).click();
+  await page.getByRole('button', { name: 'Yes, give up' }).click();
+  await expect(page.getByRole('heading', { name: 'Game over' })).toBeVisible();
+  expect(await notes()).toBe(0);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.getByRole('button', { name: 'Sound' })).toHaveAttribute('aria-pressed', 'false');
 });

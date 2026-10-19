@@ -1,4 +1,4 @@
-// Keeping a player's data: persist() once after the first finished game; the install tip on iOS Safari;
+// Keeping a player's data: persist() once after the first finished game; the install tip on iOS browsers;
 // the "under review" line on a flagged win.
 import { expect, test, type Page } from '@playwright/test';
 
@@ -64,11 +64,15 @@ test.describe('iPhone Safari, not installed', () => {
   });
 });
 
-test.describe('other browsers', () => {
-  test.use({ userAgent: IPHONE_CHROME });
-  test('no tip in iOS Chrome', async ({ page }) => {
+test.describe('iPhone Chrome, not installed', () => {
+  test.use({ userAgent: IPHONE_CHROME, viewport: { width: 360, height: 740 } });
+  test('shows the install tip too; dismissing hides it for good', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('sarhad:coach', '1'));
     await page.goto('/');
+    await expect(page.getByText(TIP)).toBeVisible();
+    await page.getByRole('button', { name: 'Dismiss tip' }).click();
+    await expect(page.getByText(TIP)).toHaveCount(0);
+    await page.reload();
     await expect(page.getByRole('button', { name: /^Play daily/ })).toBeVisible();
     await expect(page.getByText(TIP)).toHaveCount(0);
   });

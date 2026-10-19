@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { istDate, type RegionId } from '@engine/index.ts';
 import { adjacency, dailyPuzzle, getPuzzle, randomPracticePuzzle } from './lib/data.ts';
-import { useAppHeight, useOnline, useToday } from './lib/hooks.ts';
+import { useOnline, useToday } from './lib/hooks.ts';
 import { serverEnabled } from './lib/server.ts';
 import { uuid } from './lib/uuid.ts';
 import { requestPersistOnce } from './lib/persist.ts';
 import { syncName } from './lib/name.ts';
+import { play } from './lib/sound.ts';
 import { activeAttempt, addGuess, createAttempt, findDaily, giveUp, resumeAfterPause, startDailyAttempt, stats, upsertAttempt } from './game/model.ts';
 import { loadPlayer, savePlayer, STORAGE_KEY, type LocalAttempt, type SavedPlayer } from './game/storage.ts';
 import { fetchDailyStart, openSessionWhenIdle, syncPending } from './game/sync.ts';
@@ -35,7 +36,6 @@ function viewFor(a: LocalAttempt): View {
 }
 
 export function App() {
-  useAppHeight();
   const today = useToday();
   const online = useOnline();
   const [player, setPlayer] = useState(readPlayer);
@@ -119,6 +119,7 @@ export function App() {
     // Local startedAt drives the on-screen timer; the official time is server finish − server start.
     const a: LocalAttempt = { ...createAttempt('daily', s.puzzleId, s.istDate, Date.now(), uuid()), serverAttemptId: s.attemptId };
     commit(upsertAttempt(fresh, a, s.istDate));
+    play('start');
     setView(viewFor(a));
   }
 
@@ -128,6 +129,7 @@ export function App() {
     if (v.mode === 'practice') {
       const a = createAttempt('practice', v.puzzleId, undefined, now, uuid());
       commit(upsertAttempt(fresh, a, istDate(now)));
+      play('start');
       return setView(viewFor(a));
     }
     if (serverEnabled) return void startServerDaily();
@@ -137,6 +139,7 @@ export function App() {
     if (!puzzle) return setView({ name: 'home' });
     const r = startDailyAttempt(fresh, date, puzzle.id, now, uuid());
     commit(r.player);
+    if (r.attempt.startedAt === now) play('start'); // a new attempt, not a resumed one
     setView(viewFor(r.attempt));
   }
 

@@ -70,15 +70,16 @@ body[data-screen="home"] #root {
 }
 
 /* The whole app is one phone-width column, fixed to the window; every overlay is positioned inside it.
-   Its height is the tallest window height seen (--app-h, useAppHeight), never the visual viewport, so
-   the on-screen keyboard never shrinks the layout. */
+   Its height is 100svh, set by CSS alone: no script reads innerHeight or the visual viewport for
+   layout, so the on-screen keyboard can never shrink or move it. */
 #root {
   position: fixed;
   inset: 0;
   bottom: auto;
   width: 100%;
   max-width: 440px;
-  height: var(--app-h, 100%);
+  height: 100vh;
+  height: 100svh;
   margin-inline: auto;
   overflow: hidden;
   overscroll-behavior: none;

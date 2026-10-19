@@ -19,8 +19,9 @@ export function requestPersistOnce(): void {
 }
 
 /**
- * iOS Safari, not installed: Safari deletes a site's storage after 7 days without a visit unless it
- * runs from the Home Screen, so the streak would be lost.
+ * Any iOS browser (Safari, Chrome, …), not installed: iOS deletes a site's storage after 7 days without
+ * a visit unless it runs from the Home Screen, so the streak would be lost. Every iOS browser can add
+ * to the Home Screen (Share menu).
  */
 export function showInstallTip(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -31,11 +32,10 @@ export function showInstallTip(): boolean {
   }
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const safari = !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
   const standalone =
     (navigator as { standalone?: boolean }).standalone === true ||
     (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches);
-  return ios && safari && !standalone;
+  return ios && !standalone;
 }
 
 export function dismissInstallTip(): void {

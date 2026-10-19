@@ -153,12 +153,12 @@ npm run font:wordmark  # Silkscreen subset for the wordmark; needs Python with f
 ## Known limits
 
 - The map file predates the 2014 Khammam transfer. **AP–CG** (kept) and **OD–TG** (excluded) follow the post-2014 borders and still need confirming on the official political map.
-- Not yet checked on real devices: Android vibration, on-screen keyboard behaviour, screen readers.
+- Not yet checked on real devices: on-screen keyboard behaviour, sound, screen readers. Open a game with `?debug=1` to see the layout numbers (svh, innerHeight, visual viewport, map size, viewBox).
 - The schedule covers 2026-10-15 to 2027-10-14 and must be extended (append only) before it runs out.
 - The puzzle pool has routes of 2–5 regions; there are none of 6.
 - GitHub turns off scheduled workflows after 60 days without repository activity, so check that the keepalive is still running.
 - **Fast finishes:** a daily won faster than 1.5 s + 1 s per guess is stored and scored but flagged (`daily_attempts.flagged`) and kept off the public board; the player sees it as "under review". Nothing reviews or clears flags yet.
 - **Anonymous data:** a player is an anonymous session in localStorage, with no email or other link. Clearing browser data starts a new player, and their old server rows stay orphaned.
   - After the first finished game the app asks for persistent storage (`navigator.storage.persist()`).
-  - iOS Safari players see an "Add to Home Screen" tip, because Safari deletes a site's storage after 7 days without a visit.
+  - iOS players (Safari, Chrome, any iOS browser) see an "Add to Home Screen" tip, because iOS deletes a site's storage after 7 days without a visit.
 - English UI only. GPS, state leaderboards, streak freezes and notifications are out of scope.

@@ -1,6 +1,7 @@
 // iOS Safari behaviour, in WebKit with the iPhone 13 profile (touch, mobile viewport), at 390×844 and 320×640:
-// the page never scrolls, the keyboard slides the game up without shrinking the map, Start doesn't focus
-// the input, the give-up pop-up pauses practice time, the how-to-play card keeps one size.
+// the page never scrolls, the app is 100svh tall, the keyboard lifts only the input bar (the map never
+// moves, resizes or re-zooms), Start doesn't focus the input, the give-up pop-up pauses practice time,
+// the how-to-play card keeps one size. The keyboard here is simulated: the real check is on a phone.
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -83,7 +84,7 @@ for (const size of [
       expect(await pageScroll(page)).toEqual({ overflow: 0, scrollY: 0, top: 0, body: 'hidden' });
     });
 
-    test('Start does not focus the input; the keyboard slides the game up and the map keeps its size', async ({ page }) => {
+    test('Start does not focus the input; the keyboard lifts only the input bar; the map never moves, resizes or re-zooms', async ({ page }) => {
       await fakeVisualViewport(page);
       await seen(page);
       await page.goto('/');
@@ -96,26 +97,80 @@ for (const size of [
       expect(await input.evaluate((el) => [el.getAttribute('autocomplete'), el.getAttribute('autocorrect'), el.getAttribute('autocapitalize'), el.getAttribute('spellcheck'), el.getAttribute('name'), el.getAttribute('enterkeyhint')]))
         .toEqual(['off', 'off', 'words', 'false', 'sarhad-guess', 'go']);
 
-      const map = page.locator('[data-game-screen] .rounded-\\[18px\\]');
-      const before = await map.boundingBox();
+      // the app is exactly 100svh tall, set by CSS
+      expect(await page.evaluate(() => {
+        const probe = document.createElement('div');
+        probe.style.height = '100svh';
+        document.body.append(probe);
+        const svh = probe.getBoundingClientRect().height;
+        probe.remove();
+        return Math.round(document.getElementById('root')!.getBoundingClientRect().height - svh);
+      })).toBe(0);
+
+      const panel = page.locator('[data-map-panel]');
+      const svg = panel.locator('svg[role="img"]').first();
+      const before = await panel.boundingBox();
+      const viewBox = await svg.getAttribute('viewBox');
+      const restInput = await input.boundingBox();
       const kb = Math.round(size.height * 0.4);
       await input.tap();
       await page.evaluate((px) => (window as unknown as { keyboard: (px: number) => void }).keyboard(px), kb);
-      await page.waitForTimeout(350); // 200 ms slide
-      const after = await map.boundingBox();
-      expect(after!.width).toBeCloseTo(before!.width, 0);
-      expect(after!.height).toBeCloseTo(before!.height, 0); // nothing shrinks
-      expect(after!.y).toBeCloseTo(before!.y - kb, 0); // it slid up by the keyboard height
+      await page.waitForTimeout(350);
+      expect(await panel.boundingBox()).toEqual(before); // the map neither moves nor resizes
+      expect(await svg.getAttribute('viewBox')).toBe(viewBox); // nor re-zooms
       const inputBox = await input.boundingBox();
       const above = size.height - kb - (inputBox!.y + inputBox!.height);
       expect(above).toBeGreaterThanOrEqual(0); // the input sits just above the keyboard
       expect(above).toBeLessThan(24);
+      expect(inputBox!.y).toBeGreaterThan(before!.y); // over the lower part of the map
       await page.screenshot({ path: `test-results/screens/iphone-keyboard-${tag}.png` });
 
       await page.evaluate(() => (window as unknown as { keyboard: (px: number) => void }).keyboard(0));
+      await input.blur();
       await page.waitForTimeout(350);
-      expect(await map.boundingBox()).toEqual(before); // back where it was
+      expect(await panel.boundingBox()).toEqual(before);
+      expect(await svg.getAttribute('viewBox')).toBe(viewBox);
+      expect(await input.boundingBox()).toEqual(restInput); // back at the bottom
       expect(await pageScroll(page)).toEqual({ overflow: 0, scrollY: 0, top: 0, body: 'hidden' });
+    });
+
+    test('the map panel keeps one size through the game: guesses, messages and blur change nothing', async ({ page }) => {
+      await seen(page);
+      await page.addInitScript(() => {
+        const p = { attemptId: 'p', mode: 'practice', puzzleId: 'GJ-KL', startedAt: Date.now(), guesses: [], status: 'playing' };
+        localStorage.setItem('sarhad:v1', JSON.stringify({ schemaVersion: 1, player: { playerId: 'i', streak: 0, best: 0, totalPoints: 0, prunedWins: 0, attempts: [p] } }));
+      });
+      await page.goto('/');
+      const panel = page.locator('[data-map-panel]');
+      const input = page.getByLabel('Name a state or union territory');
+      await expect(input).toBeVisible();
+      await page.waitForTimeout(300);
+      const before = await panel.boundingBox();
+      for (const name of ['Punjab', 'Haryana', 'Assam', 'Bihar', 'Odisha', 'zzzz']) {
+        await input.fill(name);
+        await input.press('Enter'); // the last one is rejected: a message line appears
+      }
+      await input.blur();
+      await page.waitForTimeout(400);
+      expect(await panel.boundingBox()).toEqual(before);
+    });
+
+    test('?debug=1 shows the layout numbers; without it there is no overlay', async ({ page }) => {
+      await seen(page);
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Practice', exact: true }).click();
+      await page.getByRole('button', { name: 'Start' }).click();
+      await expect(page.getByLabel('Name a state or union territory')).toBeVisible();
+      await expect(page.locator('[data-debug]')).toHaveCount(0);
+      await page.goto('/?debug=1');
+      const debug = page.locator('[data-debug]');
+      await expect(debug).toContainText(`svh ${size.height}`);
+      await expect(debug).toContainText(`innerHeight ${size.height}`);
+      await expect(debug).toContainText('vv height');
+      await expect(debug).toContainText('offsetTop');
+      await expect(debug).toContainText(/map \d+×\d+/);
+      await expect(debug).toContainText(/viewBox -?\d+ -?\d+ \d+ \d+/);
+      await page.screenshot({ path: `test-results/screens/iphone-debug-${tag}.png` });
     });
 
     test('give up opens a pop-up; in practice the clock pauses while it is open', async ({ page }) => {

@@ -171,26 +171,28 @@ The stitch is an ink dashed thread, 2.5 px with round caps, dash 6 and gap 5, on
 - **One shortest route on Result:** a separate thinner ink line with long dashes (11/6), shown in map view only.
   - It is drawn only when you didn't find a shortest route, and only after a tap on "Show shortest route". It is hidden by default, so a loss leaves the map clean.
 
-## Motion and haptics
+## Motion and sound
 
 150–350 ms, ease-out. With `prefers-reduced-motion`, only colours change: no pops, shakes, pulses, "+1" or button travel.
 
-| Event | Motion | Haptic (`navigator.vibrate`) |
+| Event | Motion | Sound (Web Audio, ≤ 300 ms) |
 | --- | --- | --- |
-| Connected guess | fill fades to red (220 ms), 1.06 → 1 pop, the stitch draws, a small ink "+1" bounces up beside the region (700 ms) | 15 ms |
-| Accepted, not connected | fill fades to hatched Slate (180 ms) | 10 ms |
+| Start (daily or practice) | — | two soft notes up |
+| Connected guess | fill fades to red (220 ms), 1.06 → 1 pop, the stitch draws, a small ink "+1" bounces up beside the region (700 ms) | bright blip |
+| Accepted, not connected | fill fades to hatched Slate (180 ms) | soft neutral tick |
 | Late link | regions turn red in chain order, 60 ms apart; their stitches follow | — |
-| Rejected (unknown, endpoint, not playable, partial name) | input shakes ±6 px ×3 (240 ms), grey ✗ pill slides in | 30-40-30 |
-| Duplicate | same shake + pulse on that state's chip | 30-40-30 |
-| Win | pulse along the route, endpoint glow, "CONNECTED!" sticker, points count up (800 ms). No confetti. | 20-60-20-60-80 |
+| Rejected (unknown, endpoint, not playable, partial name) | input shakes ±6 px ×3 (240 ms), grey ✗ pill slides in | low muted thud |
+| Duplicate | same shake + pulse on that state's chip | low muted thud |
+| Win | pulse along the route, endpoint glow, "CONNECTED!" sticker, points count up (800 ms). No confetti. | short rising arpeggio, plus a sparkle for a shortest route |
+| Give up / out of guesses | — | gentle falling two notes |
 | Button press | 4 px travel, lip 6 → 2 px (80 ms) | — |
 
-Haptics are feature-detected and can be switched off on Home (saved per device, default on). Where `navigator.vibrate` is missing (iPhone/iOS) the toggle is not shown at all; Android keeps it.
+Sounds are synthesised with the Web Audio API (no audio files) at low volume. The speaker toggle on Home switches them off at once (saved per device, default on). iOS allows audio only after a tap, so the first tap unlocks it. There is no vibration.
 
 ## Copy budget
 
 - **Home:** a one-screen game menu; it never scrolls at 360×740 or 320×640, but may at 200% text.
-  - **Corners:** vibration toggle top-left; streak and points top-right; '?' bottom-left; map credit bottom-right.
+  - **Corners:** sound toggle top-left; streak and points top-right; '?' bottom-left; map credit bottom-right.
   - **Centre:** the inverted SARHAD sticker at about twice header size, the hero, then three buttons: daily (white primary), Practice (ink), Leaderboard (ink; 'My stats' offline).
   - **Daily button:**
     - Not played: 'PLAY DAILY' with the date under it.
@@ -222,4 +224,4 @@ Haptics are feature-detected and can be switched off on Home (saved per device, 
   - Before today's daily is done, the daily button is the primary (white) one.
   - Once it's done, Leaderboard becomes the primary button in server builds; offline builds make Practice primary instead.
   - An unfinished daily from another day shows a small 'Continue the {date} daily' link.
-  - On iOS Safari outside the installed app, a one-line white tip sits above the buttons: 'Add to Home Screen to keep your streak.'. It has a ✕, and dismissal is remembered per device.
+  - On any iOS browser (Safari, Chrome, …) outside the installed app, a one-line white tip sits above the buttons: 'Add to Home Screen to keep your streak.'. It has a ✕, and dismissal is remembered per device.

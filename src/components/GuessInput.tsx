@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { liveSuggestion, normalize, resolveInput, type RegionId, type RejectReason } from '@engine/index.ts';
 import { aliasIndex, regionName } from '../lib/data.ts';
-import { PATTERN, buzz } from '../lib/haptics.ts';
+import { play } from '../lib/sound.ts';
 
 interface Props {
   start: RegionId;
@@ -56,7 +56,7 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
 
   function reject(reason: RejectReason) {
     shake();
-    buzz(PATTERN.rejected);
+    play('rejected');
     say(rejectMessage(reason));
     if (reason === 'duplicate') {
       const r = resolveInput(text, { ...ctx, guesses: [] });
@@ -106,15 +106,15 @@ export function GuessInput({ start, end, guesses, onAccept, onDuplicate, hint }:
     }
     // a partial name: listing its matches would reveal names, so ask for the whole name
     shake();
-    buzz(PATTERN.rejected);
+    play('rejected');
     say('Type the full name');
   }
 
   const line = message || hint || '';
   return (
-    <form onSubmit={submit} className="flex flex-col gap-1.5">
-      {/* collapses when empty, so the guess chips sit right on the input */}
-      <div className={chip || line ? 'flex min-h-11 items-center gap-2' : 'h-0 overflow-hidden'}>
+    <form onSubmit={submit} className="relative">
+      {/* sits on top of whatever is above the input bar (guess chips, the map), so the bar's height never changes */}
+      <div className={chip || line ? 'absolute inset-x-0 bottom-full flex min-h-11 items-center gap-2 bg-white pb-1.5' : 'hidden'}>
         {chip && (
           <button
             type="button"
